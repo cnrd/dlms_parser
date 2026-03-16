@@ -9,9 +9,9 @@
   #define DLMS_LOGVV(TAG, ...) ESP_LOGVV(TAG, __VA_ARGS__)
 #else
   #include <cstdio>
-  #define DLMS_LOGD(TAG, ...) { printf("[D][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); }
-  #define DLMS_LOGI(TAG, ...) { printf("[I][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); }
-  #define DLMS_LOGW(TAG, ...) { printf("[W][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); }
-  #define DLMS_LOGV(TAG, ...) { printf("[V][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); }
-  #define DLMS_LOGVV(TAG, ...) { printf("[VV][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); }
+  #define DLMS_LOGD(TAG, ...) do { printf("[D][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
+  #define DLMS_LOGI(TAG, ...) do { printf("[I][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
+  #define DLMS_LOGW(TAG, ...) do { printf("[W][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
+  #define DLMS_LOGV(TAG, ...) do { printf("[V][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
+  #define DLMS_LOGVV(TAG, ...) do { printf("[VV][%s]: ", TAG); printf(__VA_ARGS__); printf("\n"); } while(0)
 #endif
