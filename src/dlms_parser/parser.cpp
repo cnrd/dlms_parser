@@ -5,6 +5,7 @@
 #include <cstring>
 #include <cstdio>
 #include <algorithm>
+#include <utility>
 
 namespace dlms {
 namespace parser {
@@ -35,7 +36,7 @@ size_t DlmsParser::parse(const uint8_t *buffer, size_t length, DlmsDataCallback 
   this->buffer_ = buffer;
   this->buffer_len_ = length;
   this->pos_ = 0;
-  this->callback_ = callback;
+  this->callback_ = std::move(callback);
   this->show_log_ = show_log;
   this->objects_found_ = 0;
 
@@ -108,28 +109,26 @@ bool DlmsParser::test_if_date_time_12b_() {
   const uint8_t *buf = &this->buffer_[this->pos_];
 
   uint16_t year = (buf[0] << 8) | buf[1];
-  if (!(year == 0x0000 || (year >= 1970 && year <= 2100))) return false;
-  if (!(buf[2] == 0xFF || (buf[2] >= 1 && buf[2] <= 12))) return false;
-  if (!(buf[3] == 0xFF || (buf[3] >= 1 && buf[3] <= 31))) return false;
-  if (!(buf[4] == 0xFF || (buf[4] >= 1 && buf[4] <= 7))) return false;
-  if (!(buf[5] == 0xFF || buf[5] <= 23)) return false;
-  if (!(buf[6] == 0xFF || buf[6] <= 59)) return false;
-  if (!(buf[7] == 0xFF || buf[7] <= 59)) return false;
+  if (year != 0x0000 && (year < 1970 || year > 2100)) return false;
+  if (buf[2] != 0xFF && (buf[2] < 1 || buf[2] > 12)) return false;
+  if (buf[3] != 0xFF && (buf[3] < 1 || buf[3] > 31)) return false;
+  if (buf[4] != 0xFF && (buf[4] < 1 || buf[4] > 7)) return false;
+  if (buf[5] != 0xFF && buf[5] > 23) return false;
+  if (buf[6] != 0xFF && buf[6] > 59) return false;
+  if (buf[7] != 0xFF && buf[7] > 59) return false;
 
   // Hundredths of second
   uint8_t ms = buf[8];
-  if (!(ms == 0xFF || ms <= 99)) return false;
+  if (ms != 0xFF && ms > 99) return false;
 
   // Deviation (timezone offset, signed, 2 bytes)
   uint16_t u_dev = (buf[9] << 8) | buf[10];
   int16_t s_dev = (int16_t) u_dev;
-  if (!((s_dev == (int16_t) 0x8000 || (s_dev >= -720 && s_dev <= 720)))) return false;
-
-  return true;
+  return s_dev == (int16_t) 0x8000 || (s_dev >= -720 && s_dev <= 720);
 }
 
 bool DlmsParser::skip_data_(uint8_t type) {
-  int data_size = get_data_type_size_((DlmsDataType)type);
+  int data_size = get_data_type_size((DlmsDataType)type);
 
   if (data_size == 0) return true;
   if (data_size > 0) {

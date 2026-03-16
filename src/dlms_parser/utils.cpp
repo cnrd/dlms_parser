@@ -7,17 +7,20 @@
 namespace dlms {
 namespace parser {
 
+namespace {
+    // Encapsulate inline helpers in an anonymous namespace so they are optimized internally
+    inline uint16_t be16(const uint8_t *p) { return (uint16_t)((p[0] << 8) | p[1]); }
+    inline uint32_t be32(const uint8_t *p) {
+        return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | (uint32_t)p[3];
+    }
+    inline uint64_t be64(const uint8_t *p) {
+        return ((uint64_t)p[0] << 56) | ((uint64_t)p[1] << 48) | ((uint64_t)p[2] << 40) | ((uint64_t)p[3] << 32) |
+               ((uint64_t)p[4] << 24) | ((uint64_t)p[5] << 16) | ((uint64_t)p[6] << 8)  | (uint64_t)p[7];
+    }
+}
+
 float data_as_float(DlmsDataType value_type, const uint8_t *ptr, uint8_t len) {
   if (!ptr || len == 0) return 0.0f;
-
-  auto be16 = [](const uint8_t *p) { return (uint16_t)((p[0] << 8) | p[1]); };
-  auto be32 = [](const uint8_t *p) {
-    return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | (uint32_t)p[3];
-  };
-  auto be64 = [](const uint8_t *p) {
-    return ((uint64_t)p[0] << 56) | ((uint64_t)p[1] << 48) | ((uint64_t)p[2] << 40) | ((uint64_t)p[3] << 32) |
-           ((uint64_t)p[4] << 24) | ((uint64_t)p[5] << 16) | ((uint64_t)p[6] << 8)  | (uint64_t)p[7];
-  };
 
   switch (value_type) {
     case DLMS_DATA_TYPE_BOOLEAN:
@@ -60,16 +63,6 @@ void data_to_string(DlmsDataType value_type, const uint8_t *ptr, uint8_t len, ch
     for (uint8_t i = 0; i < l && pos + 2 < max_out; i++) {
       pos += snprintf(out + pos, max_out - pos, "%02x", p[i]);
     }
-  };
-
-  auto be16 = [](const uint8_t *p) { return (uint16_t)((p[0] << 8) | p[1]); };
-  auto be32 = [](const uint8_t *p) {
-    return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | (uint32_t)p[3];
-  };
-  auto be64 = [](const uint8_t *p) {
-    uint64_t v = 0;
-    for (int i = 0; i < 8; i++) v = (v << 8) | p[i];
-    return v;
   };
 
   switch (value_type) {
