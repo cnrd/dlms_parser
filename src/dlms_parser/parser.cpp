@@ -123,8 +123,8 @@ bool DlmsParser::test_if_date_time_12b_() {
 
   // Deviation (timezone offset, signed, 2 bytes)
   uint16_t u_dev = (buf[9] << 8) | buf[10];
-  int16_t s_dev = (int16_t) u_dev;
-  return s_dev == (int16_t) 0x8000 || (s_dev >= -720 && s_dev <= 720);
+  int16_t s_dev = static_cast<int16_t>(u_dev);
+  return s_dev == INT16_MIN /* 0x8000 */ || (s_dev >= -720 && s_dev <= 720);
 }
 
 bool DlmsParser::skip_data_(uint8_t type) {
@@ -225,7 +225,7 @@ bool DlmsParser::capture_generic_value_(AxdrCaptures &c) {
   if (ds > 0) {
     if (this->pos_ + ds > this->buffer_len_) return false;
     c.value_ptr = &this->buffer_[this->pos_];
-    c.value_len = ds;
+    c.value_len = static_cast<uint8_t>(ds);
     this->pos_ += ds;
   } else if (ds == 0) {
     c.value_ptr = nullptr;
@@ -252,7 +252,7 @@ bool DlmsParser::capture_generic_value_(AxdrCaptures &c) {
 
     if (this->pos_ + data_bytes > this->buffer_len_) return false;
     c.value_ptr = &this->buffer_[this->pos_];
-    c.value_len = data_bytes > 255 ? 255 : data_bytes;
+    c.value_len = static_cast<uint8_t>(data_bytes > 255 ? 255 : data_bytes);
     this->pos_ += data_bytes;
   }
   c.value_type = (DlmsDataType)vt;
@@ -278,7 +278,7 @@ bool DlmsParser::match_pattern_(uint8_t elem_idx, const AxdrDescriptorPattern &p
   elements_consumed_at_level0 = 0;
   uint8_t level = 0;
   auto consume_one = [&]() { if (level == 0) elements_consumed_at_level0++; };
-  size_t initial_position = this->pos_;
+  uint32_t initial_position = static_cast<uint32_t>(this->pos_);
 
   for (const auto &step : pat.steps) {
     switch (step.type) {
@@ -366,7 +366,7 @@ void DlmsParser::emit_object_(const AxdrDescriptorPattern &pat, const AxdrCaptur
                      c.value_type != DLMS_DATA_TYPE_STRING_UTF8);
 
   if (c.has_scaler_unit && is_numeric) {
-    val_f *= std::pow(10, c.scaler);
+    val_f *= static_cast<float>(std::pow(10, c.scaler));
   }
 
   if (this->show_log_) {
