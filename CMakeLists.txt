@@ -8,12 +8,6 @@ cmake_policy(SET CMP0092 NEW)
 project(dlms_parser)
 include(FetchContent)
 
-# doctest
-file(DOWNLOAD
-  https://github.com/doctest/doctest/releases/download/v2.4.12/doctest.h
-  ${CMAKE_BINARY_DIR}/doctest/doctest.h
-  EXPECTED_HASH SHA512=5a69cc6a5e874691877fbd1cea661ec736c2d78d38791cb22a12398c2731ea6d07e7edda4bd1efde2a65df9e4ddd4836f6571d9b04e0241d520790573634065a)
-
 ## mbedtls
 #FetchContent_Populate(
 #  mded_tls
@@ -40,20 +34,12 @@ FetchContent_Populate(
 include(${cmake_template_SOURCE_DIR}/cmake/CompilerWarnings.cmake)
 include(${cmake_template_SOURCE_DIR}/cmake/Sanitizers.cmake)
 
-# dlms_parser_test
-file(GLOB_RECURSE dlms_parser_test_src_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp" "tests/*.h" "tests/*.cpp")
-add_library(dlms_parser_test ${dlms_parser_test_src_files})
-target_include_directories(dlms_parser_test PRIVATE src ${CMAKE_BINARY_DIR}/doctest)
-target_compile_features(dlms_parser_test PRIVATE cxx_std_20)
-#target_link_libraries(dlms_parser_test PRIVATE mbedtls bearssl)
-#target_include_directories(dlms_parser_test SYSTEM PUBLIC $<TARGET_PROPERTY:mbedtls,INTERFACE_INCLUDE_DIRECTORIES>) # disable warnings for mbedtls headers
+# Core library
+file(GLOB_RECURSE dlms_parser_src_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp")
+add_library(dlms_parser ${dlms_parser_src_files})
+target_include_directories(dlms_parser PUBLIC src)
+target_compile_features(dlms_parser PUBLIC cxx_std_20)
 
-# enable warnings
-add_library(dlms_parser_test_warnings INTERFACE)
-myproject_set_project_warnings(dlms_parser_test_warnings ON "" "" "" "")
-target_link_libraries(dlms_parser_test PRIVATE dlms_parser_test_warnings)
-
-# enable sanitizers: address, leak, undefined behaviour
-add_library(dlms_parser_test_sanitizers INTERFACE)
-myproject_enable_sanitizers(dlms_parser_test_sanitizers ON ON ON OFF OFF)
-target_link_libraries(dlms_parser_test PRIVATE dlms_parser_test_sanitizers)
+# Enable testing and add tests subdirectory
+enable_testing()
+add_subdirectory(tests)
