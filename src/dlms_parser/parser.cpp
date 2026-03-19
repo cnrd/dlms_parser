@@ -7,8 +7,8 @@
 #include <algorithm>
 #include <utility>
 
-namespace dlms {
-namespace parser {
+
+namespace dlms::parser {
 
 static const char *const TAG = "dlms_parser";
 
@@ -27,7 +27,7 @@ void DlmsParser::register_custom_pattern(const std::string &dsl) {
   this->register_pattern_dsl_("CUSTOM", dsl, 0); // Priority 0 to try this first
 }
 
-size_t DlmsParser::parse(const uint8_t *buffer, size_t length, DlmsDataCallback callback, bool show_log) {
+size_t DlmsParser::parse(const uint8_t *buffer, const size_t length, DlmsDataCallback callback, const bool show_log) {
   if (buffer == nullptr || length == 0) {
     if (show_log) DLMS_LOGV(TAG, "Buffer is null or empty");
     return 0;
@@ -62,7 +62,7 @@ size_t DlmsParser::parse(const uint8_t *buffer, size_t length, DlmsDataCallback 
   }
 
   // First byte after flag should be the data type (usually Structure or Array)
-  uint8_t start_type = this->read_byte_();
+  const uint8_t start_type = this->read_byte_();
   if (start_type != DLMS_DATA_TYPE_STRUCTURE && start_type != DLMS_DATA_TYPE_ARRAY) {
     if (this->show_log_) {
       DLMS_LOGW(TAG, "Expected STRUCTURE or ARRAY after header, found type %02X at position %zu",
@@ -72,8 +72,7 @@ size_t DlmsParser::parse(const uint8_t *buffer, size_t length, DlmsDataCallback 
   }
 
   // Trigger recursive parsing
-  bool success = this->parse_element_(start_type, 0);
-  if (!success && this->show_log_) {
+  if (const bool success = this->parse_element_(start_type, 0); !success && this->show_log_) {
     DLMS_LOGV(TAG, "Some errors occurred parsing DLMS data, or unexpected end of buffer.");
   }
 
@@ -91,24 +90,23 @@ uint8_t DlmsParser::read_byte_() {
 
 uint16_t DlmsParser::read_u16_() {
   if (this->pos_ + 1 >= this->buffer_len_) return 0xFFFF;
-  uint16_t val = (this->buffer_[this->pos_] << 8) | this->buffer_[this->pos_ + 1];
+  const uint16_t val = be16(&this->buffer_[this->pos_]);
   this->pos_ += 2;
   return val;
 }
 
 uint32_t DlmsParser::read_u32_() {
   if (this->pos_ + 3 >= this->buffer_len_) return 0xFFFFFFFF;
-  uint32_t val = (this->buffer_[this->pos_] << 24) | (this->buffer_[this->pos_ + 1] << 16) |
-                 (this->buffer_[this->pos_ + 2] << 8) | this->buffer_[this->pos_ + 3];
+  const uint32_t val = be32(&this->buffer_[this->pos_]);
   this->pos_ += 4;
   return val;
 }
 
-bool DlmsParser::test_if_date_time_12b_() {
+bool DlmsParser::test_if_date_time_12b_() const {
   if (this->pos_ + 12 > this->buffer_len_) return false;
   const uint8_t *buf = &this->buffer_[this->pos_];
 
-  uint16_t year = (buf[0] << 8) | buf[1];
+  const uint16_t year = be16(&buf[0]);
   if (year != 0x0000 && (year < 1970 || year > 2100)) return false;
   if (buf[2] != 0xFF && (buf[2] < 1 || buf[2] > 12)) return false;
   if (buf[3] != 0xFF && (buf[3] < 1 || buf[3] > 31)) return false;
@@ -118,34 +116,34 @@ bool DlmsParser::test_if_date_time_12b_() {
   if (buf[7] != 0xFF && buf[7] > 59) return false;
 
   // Hundredths of second
-  uint8_t ms = buf[8];
+  const uint8_t ms = buf[8];
   if (ms != 0xFF && ms > 99) return false;
 
   // Deviation (timezone offset, signed, 2 bytes)
-  uint16_t u_dev = (buf[9] << 8) | buf[10];
-  int16_t s_dev = static_cast<int16_t>(u_dev);
+  const uint16_t u_dev = be16(&buf[9]);
+  const int16_t s_dev = static_cast<int16_t>(u_dev);
   return s_dev == INT16_MIN /* 0x8000 */ || (s_dev >= -720 && s_dev <= 720);
 }
 
 bool DlmsParser::skip_data_(uint8_t type) {
-  int data_size = get_data_type_size((DlmsDataType)type);
+  const int data_size = get_data_type_size(static_cast<DlmsDataType>(type));
 
   if (data_size == 0) return true;
   if (data_size > 0) {
-    if (this->pos_ + data_size > this->buffer_len_) return false;
-    this->pos_ += data_size;
+    if (this->pos_ + static_cast<size_t>(data_size) > this->buffer_len_) return false;
+    this->pos_ += static_cast<size_t>(data_size);
   } else {
-    uint8_t first_byte = this->read_byte_();
+    const uint8_t first_byte = this->read_byte_();
     if (first_byte == 0xFF) return false;
 
     uint32_t length = first_byte;
     if (first_byte > 127) {
-      uint8_t num_bytes = first_byte & 0x7F;
+      const uint8_t num_bytes = first_byte & 0x7F;
       length = 0;
       for (int i = 0; i < num_bytes; i++) {
-        uint8_t b = this->read_byte_();
+        const uint8_t b = this->read_byte_();
         if (b == 0xFF && this->pos_ >= this->buffer_len_) return false;
-        length = (length << 8) | b;
+        length = length << 8 | b;
       }
     }
 
@@ -158,22 +156,22 @@ bool DlmsParser::skip_data_(uint8_t type) {
 
     if (this->show_log_) {
       DLMS_LOGVV(TAG, "Skipping variable data of type %s (bytes: %u) at position %zu",
-                dlms_data_type_to_string((DlmsDataType)type), skip_bytes, this->pos_);
+                dlms_data_type_to_string(static_cast<DlmsDataType>(type)), skip_bytes, this->pos_);
     }
     this->pos_ += skip_bytes;
   }
   return true;
 }
 
-bool DlmsParser::parse_element_(uint8_t type, uint8_t depth) {
+bool DlmsParser::parse_element_(const uint8_t type, const uint8_t depth) {
   if (type == DLMS_DATA_TYPE_STRUCTURE || type == DLMS_DATA_TYPE_ARRAY) {
     return this->parse_sequence_(type, depth);
   }
   return this->skip_data_(type);
 }
 
-bool DlmsParser::parse_sequence_(uint8_t type, uint8_t depth) {
-  uint8_t elements_count = this->read_byte_();
+bool DlmsParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
+  const uint8_t elements_count = this->read_byte_();
   if (elements_count == 0xFF) {
     if (this->show_log_) DLMS_LOGVV(TAG, "Invalid sequence length at position %zu", this->pos_ - 1);
     return false;
@@ -186,10 +184,10 @@ bool DlmsParser::parse_sequence_(uint8_t type, uint8_t depth) {
 
   uint8_t elements_consumed = 0;
   while (elements_consumed < elements_count) {
-    size_t original_position = this->pos_;
+    const size_t original_position = this->pos_;
 
     if (this->try_match_patterns_(elements_consumed)) {
-      elements_consumed += this->last_pattern_elements_consumed_ ? this->last_pattern_elements_consumed_ : 1;
+      elements_consumed = static_cast<uint8_t>(elements_consumed + (this->last_pattern_elements_consumed_ ? this->last_pattern_elements_consumed_ : 1));
       this->last_pattern_elements_consumed_ = 0;
       continue;
     }
@@ -202,7 +200,7 @@ bool DlmsParser::parse_sequence_(uint8_t type, uint8_t depth) {
       return false;
     }
 
-    uint8_t elem_type = this->read_byte_();
+    const uint8_t elem_type = this->read_byte_();
     if (!this->parse_element_(elem_type, depth + 1)) return false;
     elements_consumed++;
 
@@ -219,29 +217,29 @@ bool DlmsParser::parse_sequence_(uint8_t type, uint8_t depth) {
 
 bool DlmsParser::capture_generic_value_(AxdrCaptures &c) {
   uint8_t vt = this->read_byte_();
-  if (!is_value_data_type((DlmsDataType)vt)) return false;
+  if (!is_value_data_type(static_cast<DlmsDataType>(vt))) return false;
 
-  int ds = get_data_type_size((DlmsDataType)vt);
+  const int ds = get_data_type_size(static_cast<DlmsDataType>(vt));
   if (ds > 0) {
-    if (this->pos_ + ds > this->buffer_len_) return false;
+    if (this->pos_ + static_cast<size_t>(ds) > this->buffer_len_) return false;
     c.value_ptr = &this->buffer_[this->pos_];
     c.value_len = static_cast<uint8_t>(ds);
-    this->pos_ += ds;
+    this->pos_ += static_cast<size_t>(ds);
   } else if (ds == 0) {
     c.value_ptr = nullptr;
     c.value_len = 0;
   } else {
-    uint8_t first_byte = this->read_byte_();
+    const uint8_t first_byte = this->read_byte_();
     if (first_byte == 0xFF) return false;
 
     uint32_t length = first_byte;
     if (first_byte > 127) {
-      uint8_t num_bytes = first_byte & 0x7F;
+      const uint8_t num_bytes = first_byte & 0x7F;
       length = 0;
       for (int i = 0; i < num_bytes; i++) {
-        uint8_t b = this->read_byte_();
+        const uint8_t b = this->read_byte_();
         if (b == 0xFF && this->pos_ >= this->buffer_len_) return false;
-        length = (length << 8) | b;
+        length = length << 8 | b;
       }
     }
 
@@ -255,15 +253,14 @@ bool DlmsParser::capture_generic_value_(AxdrCaptures &c) {
     c.value_len = static_cast<uint8_t>(data_bytes > 255 ? 255 : data_bytes);
     this->pos_ += data_bytes;
   }
-  c.value_type = (DlmsDataType)vt;
+  c.value_type = static_cast<DlmsDataType>(vt);
   return true;
 }
 
-bool DlmsParser::try_match_patterns_(uint8_t elem_idx) {
+bool DlmsParser::try_match_patterns_(const uint8_t elem_idx) {
   for (const auto &p : this->patterns_) {
-    uint8_t consumed = 0;
-    size_t saved_position = this->pos_;
-    if (this->match_pattern_(elem_idx, p, consumed)) {
+    const size_t saved_position = this->pos_;
+    if (uint8_t consumed = 0; this->match_pattern_(elem_idx, p, consumed)) {
       this->last_pattern_elements_consumed_ = consumed;
       return true;
     }
@@ -272,13 +269,13 @@ bool DlmsParser::try_match_patterns_(uint8_t elem_idx) {
   return false;
 }
 
-bool DlmsParser::match_pattern_(uint8_t elem_idx, const AxdrDescriptorPattern &pat,
+bool DlmsParser::match_pattern_(const uint8_t elem_idx, const AxdrDescriptorPattern &pat,
                                 uint8_t &elements_consumed_at_level0) {
   AxdrCaptures cap{};
   elements_consumed_at_level0 = 0;
   uint8_t level = 0;
-  auto consume_one = [&]() { if (level == 0) elements_consumed_at_level0++; };
-  uint32_t initial_position = static_cast<uint32_t>(this->pos_);
+  auto consume_one = [&]{ if (level == 0) elements_consumed_at_level0++; };
+  const uint32_t initial_position = static_cast<uint32_t>(this->pos_);
 
   for (const auto &step : pat.steps) {
     switch (step.type) {
@@ -290,13 +287,12 @@ bool DlmsParser::match_pattern_(uint8_t elem_idx, const AxdrDescriptorPattern &p
         consume_one();
         break;
       case AxdrTokenType::EXPECT_TYPE_U_I_8: {
-        uint8_t t = this->read_byte_();
-        if (t != DLMS_DATA_TYPE_INT8 && t != DLMS_DATA_TYPE_UINT8) return false;
+        if (const uint8_t t = this->read_byte_(); t != DLMS_DATA_TYPE_INT8 && t != DLMS_DATA_TYPE_UINT8) return false;
         consume_one();
         break;
       }
       case AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED: {
-        uint16_t v = this->read_u16_();
+        const uint16_t v = this->read_u16_();
         if (v > 0x00FF) return false;
         cap.class_id = v;
         break;
@@ -328,7 +324,7 @@ bool DlmsParser::match_pattern_(uint8_t elem_idx, const AxdrDescriptorPattern &p
         break;
       case AxdrTokenType::EXPECT_SCALER_TAGGED:
         if (this->read_byte_() != DLMS_DATA_TYPE_INT8) return false;
-        cap.scaler = (int8_t)this->read_byte_();
+        cap.scaler = static_cast<int8_t>(this->read_byte_());
         cap.has_scaler_unit = true;
         consume_one();
         break;
@@ -355,15 +351,15 @@ void DlmsParser::emit_object_(const AxdrDescriptorPattern &pat, const AxdrCaptur
   char obis_str_buf[32];
   obis_to_string(c.obis, obis_str_buf, sizeof(obis_str_buf));
 
-  float raw_val_f = data_as_float(c.value_type, c.value_ptr, c.value_len);
+  const float raw_val_f = data_as_float(c.value_type, c.value_ptr, c.value_len);
   float val_f = raw_val_f;
 
   char val_s_buf[128];
   data_to_string(c.value_type, c.value_ptr, c.value_len, val_s_buf, sizeof(val_s_buf));
 
-  bool is_numeric = (c.value_type != DLMS_DATA_TYPE_OCTET_STRING &&
-                     c.value_type != DLMS_DATA_TYPE_STRING &&
-                     c.value_type != DLMS_DATA_TYPE_STRING_UTF8);
+  const bool is_numeric = c.value_type != DLMS_DATA_TYPE_OCTET_STRING &&
+                          c.value_type != DLMS_DATA_TYPE_STRING &&
+                          c.value_type != DLMS_DATA_TYPE_STRING_UTF8;
 
   if (c.has_scaler_unit && is_numeric) {
     val_f *= static_cast<float>(std::pow(10, c.scaler));
@@ -371,7 +367,7 @@ void DlmsParser::emit_object_(const AxdrDescriptorPattern &pat, const AxdrCaptur
 
   if (this->show_log_) {
     DLMS_LOGD(TAG, "Pattern match '%s' at idx %u ===============", pat.name.c_str(), c.elem_idx);
-    uint16_t cid = c.class_id ? c.class_id : pat.default_class_id;
+    const uint16_t cid = c.class_id ? c.class_id : pat.default_class_id;
 
     DLMS_LOGI(TAG, "Found attribute descriptor: class_id=%d, obis=%s", cid, obis_str_buf);
 
@@ -388,10 +384,10 @@ void DlmsParser::emit_object_(const AxdrDescriptorPattern &pat, const AxdrCaptur
       DLMS_LOGI(TAG, " as hex dump : %s", hex_buf);
     }
     DLMS_LOGI(TAG, " as string   :'%s'", val_s_buf);
-    DLMS_LOGI(TAG, " as number   : %f", raw_val_f);
+    DLMS_LOGI(TAG, " as number   : %f", static_cast<double>(raw_val_f));
 
     if (c.has_scaler_unit && is_numeric) {
-      DLMS_LOGI(TAG, " as number * scaler  : %f", val_f);
+      DLMS_LOGI(TAG, " as number * scaler  : %f", static_cast<double>(val_f));
     }
   }
 
@@ -399,12 +395,12 @@ void DlmsParser::emit_object_(const AxdrDescriptorPattern &pat, const AxdrCaptur
   this->objects_found_++;
 }
 
-void DlmsParser::register_pattern_dsl_(const std::string &name, const std::string &dsl, int priority) {
+void DlmsParser::register_pattern_dsl_(const std::string &name, const std::string &dsl, const int priority) {
   AxdrDescriptorPattern pat{name, priority, {}, 0};
 
   auto trim = [](const std::string &s) {
-    size_t b = s.find_first_not_of(" \t\r\n");
-    size_t e = s.find_last_not_of(" \t\r\n");
+    const size_t b = s.find_first_not_of(" \t\r\n");
+    const size_t e = s.find_last_not_of(" \t\r\n");
     if (b == std::string::npos) return std::string();
     return s.substr(b, e - b + 1);
   };
@@ -412,7 +408,7 @@ void DlmsParser::register_pattern_dsl_(const std::string &name, const std::strin
   std::vector<std::string> tokens;
   std::string current;
   int paren = 0;
-  for (char c : dsl) {
+  for (const char c : dsl) {
     if (c == '(') {
       paren++;
       current.push_back(c);
@@ -456,13 +452,12 @@ void DlmsParser::register_pattern_dsl_(const std::string &name, const std::strin
     }
     else if (tok == "V" || tok == "TV") pat.steps.push_back({AxdrTokenType::EXPECT_VALUE_GENERIC});
     else if (tok.size() >= 2 && tok.substr(0, 2) == "S(") {
-      size_t l = tok.find('(');
-      size_t r = tok.rfind(')');
-      if (l != std::string::npos && r != std::string::npos && r > l + 1) {
+      const size_t l = tok.find('(');
+      if (const size_t r = tok.rfind(')'); l != std::string::npos && r != std::string::npos && r > l + 1) {
         std::string inner = tok.substr(l + 1, r - l - 1);
         std::vector<std::string> inner_tokens;
         std::string cur;
-        for (char c2 : inner) {
+        for (const char c2 : inner) {
           if (c2 == ',') {
             inner_tokens.push_back(trim(cur));
             cur.clear();
@@ -476,7 +471,7 @@ void DlmsParser::register_pattern_dsl_(const std::string &name, const std::strin
           pat.steps.push_back({AxdrTokenType::EXPECT_STRUCTURE_N, static_cast<uint8_t>(inner_tokens.size())});
           inner_tokens.insert(inner_tokens.begin(), "DN");
           inner_tokens.push_back("UP");
-          tokens.insert(tokens.begin() + i + 1, inner_tokens.begin(), inner_tokens.end());
+          tokens.insert(tokens.begin() + static_cast<std::ptrdiff_t>(i + 1), inner_tokens.begin(), inner_tokens.end());
         }
       }
     }
@@ -484,10 +479,10 @@ void DlmsParser::register_pattern_dsl_(const std::string &name, const std::strin
     else if (tok == "UP") pat.steps.push_back({AxdrTokenType::GOING_UP});
   }
 
-  auto it = std::upper_bound(this->patterns_.begin(), this->patterns_.end(), pat,
+  const auto it = std::upper_bound(this->patterns_.begin(), this->patterns_.end(), pat,
       [](const AxdrDescriptorPattern &a, const AxdrDescriptorPattern &b) { return a.priority < b.priority; });
   this->patterns_.insert(it, pat);
 }
 
-}  // namespace parser
-}  // namespace dlms
+} // namespace dlms::parser
+
