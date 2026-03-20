@@ -36,7 +36,7 @@ void run_meter_test(const uint8_t* payload, size_t payload_size,
   for (const auto& expected : expected_floats) {
       INFO("Checking numeric OBIS code: ", expected.first);
       REQUIRE(captured_floats.count(expected.first) > 0);
-      CHECK(captured_floats[expected.first] == doctest::Approx(expected.second));
+      CHECK(static_cast<double>(captured_floats[expected.first]) == doctest::Approx(static_cast<double>(expected.second)));
   }
 }
 

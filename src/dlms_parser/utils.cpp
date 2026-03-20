@@ -1,4 +1,5 @@
 #include "utils.h"
+#include <cinttypes>
 #include <cmath>
 #include <cstring>
 #include <cstdio>
@@ -86,16 +87,16 @@ void data_to_string(const DlmsDataType value_type, const uint8_t *ptr, const uin
       if (len >= 2) snprintf(buffer, max_len, "%d", static_cast<int16_t>(be16(ptr)));
       break;
     case DLMS_DATA_TYPE_UINT32:
-      if (len >= 4) snprintf(buffer, max_len, "%lu", static_cast<unsigned long>(be32(ptr)));
+      if (len >= 4) snprintf(buffer, max_len, "%" PRIu32, be32(ptr));
       break;
     case DLMS_DATA_TYPE_INT32:
-      if (len >= 4) snprintf(buffer, max_len, "%ld", static_cast<long>(static_cast<int32_t>(be32(ptr))));
+      if (len >= 4) snprintf(buffer, max_len, "%" PRId32, static_cast<int32_t>(be32(ptr)));
       break;
     case DLMS_DATA_TYPE_UINT64:
-      if (len >= 8) snprintf(buffer, max_len, "%llu", static_cast<unsigned long long>(be64(ptr)));
+      if (len >= 8) snprintf(buffer, max_len, "%" PRIu64, be64(ptr));
       break;
     case DLMS_DATA_TYPE_INT64:
-      if (len >= 8) snprintf(buffer, max_len, "%lld", static_cast<long long>(be64(ptr)));
+      if (len >= 8) snprintf(buffer, max_len, "%" PRId64, static_cast<int64_t>(be64(ptr)));
       break;
     case DLMS_DATA_TYPE_FLOAT32:
     case DLMS_DATA_TYPE_FLOAT64: {
