@@ -42,38 +42,63 @@ size_t DlmsParser::parse(const uint8_t *buffer, const size_t length, DlmsDataCal
 
   if (this->show_log_) DLMS_LOGD(TAG, "Starting to parse buffer of length %zu", length);
 
-  // Skip to notification flag 0x0F
+  uint8_t apdu_tag = 0;
   while (this->pos_ < this->buffer_len_) {
-    if (this->read_byte_() == 0x0F) {
-      if (this->show_log_) DLMS_LOGD(TAG, "Found notification flag 0x0F at position %zu", this->pos_ - 1);
+    apdu_tag = this->read_byte_();
+    if (apdu_tag == DLMS_APDU_DATA_NOTIFICATION ||
+        apdu_tag == DLMS_APDU_GENERAL_GLO_CIPHERING ||
+        apdu_tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
+      if (this->show_log_) DLMS_LOGD(TAG, "Found APDU tag 0x%02X at position %zu", apdu_tag, this->pos_ - 1);
       break;
     }
   }
 
-  // Strictly skip Invoke-ID/Priority (5 bytes)
-  for (int i = 0; i < 5 && this->pos_ < this->buffer_len_; i++) {
-    this->pos_++;
-  }
-
-  // Check for datetime object before the data and skip it if present
-  if (this->test_if_date_time_12b_()) {
-    if (this->show_log_) DLMS_LOGV(TAG, "Skipping datetime object at position %zu", this->pos_);
-    this->pos_ += 12;
-  }
-
-  // First byte after flag should be the data type (usually Structure or Array)
-  const uint8_t start_type = this->read_byte_();
-  if (start_type != DLMS_DATA_TYPE_STRUCTURE && start_type != DLMS_DATA_TYPE_ARRAY) {
-    if (this->show_log_) {
-      DLMS_LOGW(TAG, "Expected STRUCTURE or ARRAY after header, found type %02X at position %zu",
-               start_type, this->pos_ - 1);
+  if (apdu_tag == DLMS_APDU_DATA_NOTIFICATION) {
+    // Skip Long-Invoke-ID-And-Priority (4 bytes)
+    for (int i = 0; i < 4 && this->pos_ < this->buffer_len_; i++) {
+      this->pos_++;
     }
-    return 0;
-  }
 
-  // Trigger recursive parsing
-  if (const bool success = this->parse_element_(start_type, 0); !success && this->show_log_) {
-    DLMS_LOGV(TAG, "Some errors occurred parsing DLMS data, or unexpected end of buffer.");
+    // Read Date-Time presence flag (1 byte)
+    if (this->pos_ < this->buffer_len_) {
+      const uint8_t has_datetime = this->read_byte_();
+      if (has_datetime != 0x00) { // Flag is set (usually 0x01), strictly skip the next 12 bytes
+        if (this->show_log_) DLMS_LOGV(TAG, "Datetime presence flag is set (0x%02X), skipping 12-byte datetime object at position %zu", has_datetime, this->pos_);
+        this->pos_ += 12;
+        if (this->pos_ > this->buffer_len_) this->pos_ = this->buffer_len_; // Prevent overflow
+      } else {
+        if (this->show_log_) DLMS_LOGV(TAG, "Datetime presence flag is 0x00, no datetime object to skip.");
+      }
+    }
+
+    if (this->pos_ >= this->buffer_len_) return 0;
+
+    // First byte after header should be the data type (usually Structure or Array)
+    const uint8_t start_type = this->read_byte_();
+    if (start_type != DLMS_DATA_TYPE_STRUCTURE && start_type != DLMS_DATA_TYPE_ARRAY) {
+      if (this->show_log_) {
+        DLMS_LOGW(TAG, "Expected STRUCTURE or ARRAY after header, found type %02X at position %zu",
+                 start_type, this->pos_ - 1);
+      }
+      return 0;
+    }
+
+    // Trigger recursive parsing
+    if (const bool success = this->parse_element_(start_type, 0); !success && this->show_log_) {
+      DLMS_LOGV(TAG, "Some errors occurred parsing DLMS data, or unexpected end of buffer.");
+    }
+
+  } else if (apdu_tag == DLMS_APDU_GENERAL_GLO_CIPHERING || apdu_tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
+    // --- CIPHERED APDU (general-glo-ciphering or general-ded-ciphering) ---
+    if (this->show_log_) {
+      DLMS_LOGW(TAG, "Encrypted APDU (0x%02X) detected. Decryption not yet implemented.", apdu_tag);
+    }
+    // TODO: Implement (Extract System Title & Counter) and (AES-128-GCM Decryption) here
+    return 0;
+
+  } else {
+    if (this->show_log_) DLMS_LOGW(TAG, "No supported APDU tag found in buffer.");
+    return 0;
   }
 
   if (this->show_log_) {
@@ -100,29 +125,6 @@ uint32_t DlmsParser::read_u32_() {
   const uint32_t val = be32(&this->buffer_[this->pos_]);
   this->pos_ += 4;
   return val;
-}
-
-bool DlmsParser::test_if_date_time_12b_() const {
-  if (this->pos_ + 12 > this->buffer_len_) return false;
-  const uint8_t *buf = &this->buffer_[this->pos_];
-
-  const uint16_t year = be16(&buf[0]);
-  if (year != 0x0000 && (year < 1970 || year > 2100)) return false;
-  if (buf[2] != 0xFF && (buf[2] < 1 || buf[2] > 12)) return false;
-  if (buf[3] != 0xFF && (buf[3] < 1 || buf[3] > 31)) return false;
-  if (buf[4] != 0xFF && (buf[4] < 1 || buf[4] > 7)) return false;
-  if (buf[5] != 0xFF && buf[5] > 23) return false;
-  if (buf[6] != 0xFF && buf[6] > 59) return false;
-  if (buf[7] != 0xFF && buf[7] > 59) return false;
-
-  // Hundredths of second
-  const uint8_t ms = buf[8];
-  if (ms != 0xFF && ms > 99) return false;
-
-  // Deviation (timezone offset, signed, 2 bytes)
-  const uint16_t u_dev = be16(&buf[9]);
-  const int16_t s_dev = static_cast<int16_t>(u_dev);
-  return s_dev == INT16_MIN /* 0x8000 */ || (s_dev >= -720 && s_dev <= 720);
 }
 
 bool DlmsParser::skip_data_(uint8_t type) {

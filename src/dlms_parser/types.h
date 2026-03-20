@@ -33,6 +33,12 @@ namespace dlms::parser {
         DLMS_DATA_TYPE_TIME = 27
       };
 
+    enum DlmsApduTag : uint8_t {
+        DLMS_APDU_DATA_NOTIFICATION = 0x0F,
+        DLMS_APDU_GENERAL_GLO_CIPHERING = 0xDB,
+        DLMS_APDU_GENERAL_DED_CIPHERING = 0xDF
+    };
+
     enum class AxdrTokenType : uint8_t {
         EXPECT_TO_BE_FIRST,
         EXPECT_TYPE_EXACT,

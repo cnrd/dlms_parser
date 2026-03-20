@@ -28,8 +28,6 @@ namespace dlms::parser {
         uint16_t read_u16_();
         uint32_t read_u32_();
 
-        bool test_if_date_time_12b_() const;
-
         bool skip_data_(uint8_t type);
         bool parse_element_(uint8_t type, uint8_t depth = 0);
         bool parse_sequence_(uint8_t type, uint8_t depth = 0);
