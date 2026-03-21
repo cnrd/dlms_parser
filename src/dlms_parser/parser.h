@@ -23,6 +23,9 @@ private:
   void register_pattern_dsl_(const std::string& name, const std::string& dsl, int priority);
   void load_default_patterns_();
 
+  uint8_t find_apdu_tag_();
+  void parse_data_notification_();
+
   uint8_t read_byte_();
   uint16_t read_u16_();
   uint32_t read_u32_();

@@ -39,52 +39,10 @@ size_t DlmsParser::parse(const uint8_t* buffer, const size_t length, DlmsDataCal
 
   if (this->show_log_) DLMS_LOGD(TAG, "Starting to parse buffer of length %zu", length);
 
-  uint8_t apdu_tag = 0;
-  while (this->pos_ < this->buffer_len_) {
-    apdu_tag = this->read_byte_();
-    if (apdu_tag == DLMS_APDU_DATA_NOTIFICATION ||
-        apdu_tag == DLMS_APDU_GENERAL_GLO_CIPHERING ||
-        apdu_tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
-      if (this->show_log_) DLMS_LOGD(TAG, "Found APDU tag 0x%02X at position %zu", apdu_tag, this->pos_ - 1);
-      break;
-    }
-  }
+  const uint8_t apdu_tag = this->find_apdu_tag_();
 
   if (apdu_tag == DLMS_APDU_DATA_NOTIFICATION) {
-    // Skip Long-Invoke-ID-And-Priority (4 bytes)
-    for (int i = 0; i < 4 && this->pos_ < this->buffer_len_; i++) {
-      this->pos_++;
-    }
-
-    // Read Date-Time presence flag (1 byte)
-    if (this->pos_ < this->buffer_len_) {
-      const uint8_t has_datetime = this->read_byte_();
-      if (has_datetime != 0x00) { // Flag is set (usually 0x01), strictly skip the next 12 bytes
-        if (this->show_log_) DLMS_LOGV(TAG, "Datetime presence flag is set (0x%02X), skipping 12-byte datetime object at position %zu", has_datetime, this->pos_);
-        this->pos_ += 12;
-        if (this->pos_ > this->buffer_len_) this->pos_ = this->buffer_len_; // Prevent overflow
-      } else {
-        if (this->show_log_) DLMS_LOGV(TAG, "Datetime presence flag is 0x00, no datetime object to skip.");
-      }
-    }
-
-    if (this->pos_ >= this->buffer_len_) return 0;
-
-    // First byte after header should be the data type (usually Structure or Array)
-    const uint8_t start_type = this->read_byte_();
-    if (start_type != DLMS_DATA_TYPE_STRUCTURE && start_type != DLMS_DATA_TYPE_ARRAY) {
-      if (this->show_log_) {
-        DLMS_LOGW(TAG, "Expected STRUCTURE or ARRAY after header, found type %02X at position %zu",
-                 start_type, this->pos_ - 1);
-      }
-      return 0;
-    }
-
-    // Trigger recursive parsing
-    if (const bool success = this->parse_element_(start_type, 0); !success && this->show_log_) {
-      DLMS_LOGV(TAG, "Some errors occurred parsing DLMS data, or unexpected end of buffer.");
-    }
-
+    this->parse_data_notification_();
   } else if (apdu_tag == DLMS_APDU_GENERAL_GLO_CIPHERING || apdu_tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
     // --- CIPHERED APDU (general-glo-ciphering or general-ded-ciphering) ---
     if (this->show_log_) {
@@ -103,6 +61,57 @@ size_t DlmsParser::parse(const uint8_t* buffer, const size_t length, DlmsDataCal
   }
 
   return this->objects_found_;
+}
+
+uint8_t DlmsParser::find_apdu_tag_() {
+  uint8_t apdu_tag = 0;
+  while (this->pos_ < this->buffer_len_) {
+    apdu_tag = this->read_byte_();
+    if (apdu_tag == DLMS_APDU_DATA_NOTIFICATION ||
+        apdu_tag == DLMS_APDU_GENERAL_GLO_CIPHERING ||
+        apdu_tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
+      if (this->show_log_) DLMS_LOGD(TAG, "Found APDU tag 0x%02X at position %zu", apdu_tag, this->pos_ - 1);
+      return apdu_tag;
+    }
+  }
+  return 0;
+}
+
+void DlmsParser::parse_data_notification_() {
+  // Skip Long-Invoke-ID-And-Priority (4 bytes)
+  for (int i = 0; i < 4 && this->pos_ < this->buffer_len_; i++) {
+    this->pos_++;
+  }
+
+  // Read Date-Time presence flag (1 byte)
+  if (this->pos_ < this->buffer_len_) {
+    const uint8_t has_datetime = this->read_byte_();
+    if (has_datetime != 0x00) { // Flag is set (usually 0x01), strictly skip the next 12 bytes
+      if (this->show_log_) {
+        DLMS_LOGV(TAG, "Datetime presence flag is set (0x%02X), skipping 12-byte datetime object at position %zu", has_datetime, this->pos_);
+      }
+      this->pos_ += 12;
+      if (this->pos_ > this->buffer_len_) this->pos_ = this->buffer_len_; // Prevent overflow
+    } else {
+      if (this->show_log_) DLMS_LOGV(TAG, "Datetime presence flag is 0x00, no datetime object to skip.");
+    }
+  }
+
+  if (this->pos_ >= this->buffer_len_) return;
+
+  // First byte after header should be the data type (usually Structure or Array)
+  const uint8_t start_type = this->read_byte_();
+  if (start_type != DLMS_DATA_TYPE_STRUCTURE && start_type != DLMS_DATA_TYPE_ARRAY) {
+    if (this->show_log_) {
+      DLMS_LOGW(TAG, "Expected STRUCTURE or ARRAY after header, found type %02X at position %zu", start_type, this->pos_ - 1);
+    }
+    return;
+  }
+
+  // Trigger recursive parsing
+  if (const bool success = this->parse_element_(start_type, 0); !success && this->show_log_) {
+    DLMS_LOGV(TAG, "Some errors occurred parsing DLMS data, or unexpected end of buffer.");
+  }
 }
 
 uint8_t DlmsParser::read_byte_() {
