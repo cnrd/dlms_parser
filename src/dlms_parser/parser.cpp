@@ -7,11 +7,19 @@
 #include <cstring>
 #include <utility>
 
+#if defined(USE_ESP8266_FRAMEWORK_ARDUINO) || defined(USE_ESP8266) || defined(ESP8266)
+#include <bearssl/bearssl.h>
+#else
+#include <mbedtls/gcm.h>
+#endif
+
 namespace dlms_parser {
 
 static const char* const TAG = "dlms_parser";
 
-DlmsParser::DlmsParser() { this->load_default_patterns_(); }
+DlmsParser::DlmsParser() {
+  this->load_default_patterns_();
+}
 
 void DlmsParser::load_default_patterns_() {
   this->register_pattern_dsl_("T1", "TC,TO,TS,TV", 10);
@@ -22,6 +30,18 @@ void DlmsParser::load_default_patterns_() {
 
 void DlmsParser::register_custom_pattern(const std::string& dsl) {
   this->register_pattern_dsl_("CUSTOM", dsl, 0); // Priority 0 to try this first
+}
+
+void DlmsParser::set_decryption_key(const std::array<uint8_t, 16> &key) {
+  this->decryption_key_ = key;
+  this->has_decryption_key_ = true;
+}
+
+void DlmsParser::set_decryption_key(const std::vector<uint8_t> &key) {
+  if (key.size() == 16) {
+    std::ranges::copy(key, this->decryption_key_.begin());
+    this->has_decryption_key_ = true;
+  }
 }
 
 size_t DlmsParser::parse(const uint8_t* buffer, const size_t length, DlmsDataCallback callback, const bool show_log) {
@@ -44,13 +64,7 @@ size_t DlmsParser::parse(const uint8_t* buffer, const size_t length, DlmsDataCal
   if (apdu_tag == DLMS_APDU_DATA_NOTIFICATION) {
     this->parse_data_notification_();
   } else if (apdu_tag == DLMS_APDU_GENERAL_GLO_CIPHERING || apdu_tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
-    // --- CIPHERED APDU (general-glo-ciphering or general-ded-ciphering) ---
-    if (this->show_log_) {
-      DLMS_LOGW(TAG, "Encrypted APDU (0x%02X) detected. Decryption not yet implemented.", apdu_tag);
-    }
-    // TODO: Implement (Extract System Title & Counter) and (AES-128-GCM Decryption) here
-    return 0;
-
+    this->parse_ciphered_apdu_(apdu_tag);
   } else {
     if (this->show_log_) DLMS_LOGW(TAG, "No supported APDU tag found in buffer.");
     return 0;
@@ -112,6 +126,76 @@ void DlmsParser::parse_data_notification_() {
   if (const bool success = this->parse_element_(start_type, 0); !success && this->show_log_) {
     DLMS_LOGV(TAG, "Some errors occurred parsing DLMS data, or unexpected end of buffer.");
   }
+}
+
+void DlmsParser::parse_ciphered_apdu_(const uint8_t apdu_tag) {
+  if (!this->has_decryption_key_) {
+    if (this->show_log_) DLMS_LOGW(TAG, "Encrypted APDU (0x%02X) detected but no key set.", apdu_tag);
+    return;
+  }
+
+  if (const uint8_t sys_title_len = this->read_byte_(); sys_title_len != DLMS_SYSTITLE_LENGTH) return;
+
+  uint8_t iv[DLMS_IV_LENGTH];
+  for (int i = 0; i < DLMS_SYSTITLE_LENGTH; i++) iv[i] = this->read_byte_();
+
+  const uint8_t len_byte = this->read_byte_();
+  uint32_t cipher_len = len_byte;
+  if (len_byte > DLMS_LENGTH_SINGLE_BYTE_MAX) {
+    const uint8_t num_bytes = len_byte & 0x7F;
+    cipher_len = 0;
+    for (int i = 0; i < num_bytes; i++) cipher_len = cipher_len << 8 | this->read_byte_();
+  }
+
+  const uint8_t sec_ctrl = this->read_byte_();
+  (void)sec_ctrl; // Suppress unused var
+  for (int i = 0; i < DLMS_FRAME_COUNTER_LENGTH; i++) iv[DLMS_SYSTITLE_LENGTH + i] = this->read_byte_();
+
+  if (cipher_len < DLMS_LENGTH_CORRECTION) return;
+  const uint32_t payload_len = cipher_len - DLMS_LENGTH_CORRECTION;
+  if (this->pos_ + payload_len > this->buffer_len_) return;
+
+  std::vector<uint8_t> plain_text(payload_len);
+  if (!this->decrypt_gcm_(iv, &this->buffer_[this->pos_], payload_len, plain_text.data())) {
+    if (this->show_log_) DLMS_LOGE(TAG, "Decryption failed");
+    return;
+  }
+
+  if (plain_text.empty() || plain_text[0] != DLMS_APDU_DATA_NOTIFICATION) {
+    if (this->show_log_) DLMS_LOGE(TAG, "Decrypted payload invalid (no DATA_NOTIFICATION)");
+    return;
+  }
+
+  // Create isolated sub-parser to safely iterate the newly decrypted payload recursively
+  DlmsParser inner_parser;
+  inner_parser.set_decryption_key(this->decryption_key_);
+  inner_parser.patterns_ = this->patterns_;
+  this->objects_found_ += inner_parser.parse(plain_text.data(), plain_text.size(), this->callback_, this->show_log_);
+
+  this->pos_ += payload_len; // Advance parent position to keep sanity checks intact
+}
+
+bool DlmsParser::decrypt_gcm_(const uint8_t *iv, const uint8_t *cipher_text, size_t cipher_len, uint8_t *plain_text) {
+#if defined(USE_ESP8266_FRAMEWORK_ARDUINO) || defined(USE_ESP8266) || defined(ESP8266)
+  std::memcpy(plain_text, cipher_text, cipher_len);
+  br_gcm_context gcm_ctx;
+  br_aes_ct_ctr_keys bc;
+  br_aes_ct_ctr_init(&bc, this->decryption_key_.data(), this->decryption_key_.size());
+  br_gcm_init(&gcm_ctx, &bc.vtable, br_ghash_ctmul32);
+  br_gcm_reset(&gcm_ctx, iv, DLMS_IV_LENGTH);
+  br_gcm_flip(&gcm_ctx);
+  br_gcm_run(&gcm_ctx, 0, plain_text, cipher_len);
+  return true;
+#else
+  mbedtls_gcm_context gcm_ctx;
+  mbedtls_gcm_init(&gcm_ctx);
+  mbedtls_gcm_setkey(&gcm_ctx, MBEDTLS_CIPHER_ID_AES, this->decryption_key_.data(), static_cast<unsigned int>(this->decryption_key_.size() * 8));
+  mbedtls_gcm_starts(&gcm_ctx, MBEDTLS_GCM_DECRYPT, iv, DLMS_IV_LENGTH);
+  size_t outlen = 0;
+  const int ret = mbedtls_gcm_update(&gcm_ctx, cipher_text, cipher_len, plain_text, cipher_len, &outlen);
+  mbedtls_gcm_free(&gcm_ctx);
+  return ret == 0;
+#endif
 }
 
 uint8_t DlmsParser::read_byte_() {

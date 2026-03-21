@@ -18,8 +18,8 @@ file(DOWNLOAD
 # mbedtls
 FetchContent_Populate(
   mded_tls
-  URL https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-4.0.0/mbedtls-4.0.0.tar.bz2
-  URL_HASH SHA512=cc62c99a82f2f85ee4caa6488804648e81358e59f1498b6a97b034114e531bf44b05ae3d50db797ada939b6d4ac90bde29cd2363a36631af9e5fdfef57bfb267)
+  URL https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.5/mbedtls-3.6.5.tar.bz2
+  URL_HASH SHA256=4a11f1777bb95bf4ad96721cac945a26e04bf19f57d905f241fe77ebeddf46d8)
 set(ENABLE_PROGRAMS OFF CACHE INTERNAL "")
 set(ENABLE_TESTING OFF CACHE INTERNAL "")
 set(MBEDTLS_FATAL_WARNINGS OFF CACHE INTERNAL "")

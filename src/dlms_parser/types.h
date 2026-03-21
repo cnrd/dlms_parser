@@ -32,7 +32,19 @@ enum DlmsDataType : uint8_t {
   DLMS_DATA_TYPE_TIME = 27
 };
 
-enum DlmsApduTag : uint8_t { DLMS_APDU_DATA_NOTIFICATION = 0x0F, DLMS_APDU_GENERAL_GLO_CIPHERING = 0xDB, DLMS_APDU_GENERAL_DED_CIPHERING = 0xDF };
+enum DlmsApduTag : uint8_t {
+  DLMS_APDU_DATA_NOTIFICATION = 0x0F,
+  DLMS_APDU_GENERAL_GLO_CIPHERING = 0xDB,
+  DLMS_APDU_GENERAL_DED_CIPHERING = 0xDF
+}; // There will be more, keep as list (not single line)
+
+enum DlmsCipherConstants : uint8_t {
+  DLMS_SYSTITLE_LENGTH = 8,
+  DLMS_FRAME_COUNTER_LENGTH = 4,
+  DLMS_IV_LENGTH = 12,
+  DLMS_LENGTH_SINGLE_BYTE_MAX = 127,
+  DLMS_LENGTH_CORRECTION = 5
+};
 
 enum class AxdrTokenType : uint8_t {
   EXPECT_TO_BE_FIRST,
