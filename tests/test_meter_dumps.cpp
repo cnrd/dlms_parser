@@ -3,6 +3,8 @@
 #include <string>
 #include <cstdarg>
 #include <vector>
+#include <exception>
+#include <format>
 
 #include "dlms_parser/parser.h"
 #include "dlms_parser/log.h"
@@ -13,38 +15,28 @@ void run_meter_test(const uint8_t* payload, size_t payload_size,
                     size_t expected_count,
                     const std::map<std::string, std::string>& expected_strings,
                     const std::map<std::string, float>& expected_floats) {
+  std::string log_messages;
+  dlms_parser::Logger::set_log_function([&log_messages](const dlms_parser::LogLevel log_level, const char* fmt, const va_list args) {
+    std::array<char, 2000> buffer;
+    vsnprintf(buffer.data(), buffer.size(), fmt, args);
+
+    const char* level_str;
+    switch(log_level) {
+      case dlms_parser::LogLevel::DEBUG:        level_str = "[DBG] "; break;
+      case dlms_parser::LogLevel::VERY_VERBOSE: level_str = "[VV]  "; break;
+      case dlms_parser::LogLevel::VERBOSE:      level_str = "[VRB] "; break;
+      case dlms_parser::LogLevel::INFO:         level_str = "[INF] "; break;
+      case dlms_parser::LogLevel::WARNING:      level_str = "[WRN] "; break;
+      case dlms_parser::LogLevel::ERROR:        level_str = "[ERR] "; break;
+      default: throw std::exception("Unknown log level");
+    }
+
+    log_messages += std::format("{}{}\n", level_str, buffer.data());
+  });
 
   dlms_parser::DlmsParser parser;
   std::map<std::string, float> captured_floats;
   std::map<std::string, std::string> captured_strings;
-
-  std::string all_logs;
-
-  dlms_parser::Logger::set_log_function([&all_logs](const dlms_parser::LogLevel log_level, const char* fmt, const va_list args) {
-    va_list args_copy;
-    va_copy(args_copy, args);
-    const int len = vsnprintf(nullptr, 0, fmt, args_copy);
-    va_end(args_copy);
-
-    if (len > 0) {
-      std::string buffer(len + 1, '\0');
-      vsnprintf(&buffer[0], buffer.size(), fmt, args);
-      buffer.resize(len);
-
-      auto level_str = "[UNK] ";
-      switch(log_level) {
-        case dlms_parser::LogLevel::DEBUG:        level_str = "[DBG] "; break;
-        case dlms_parser::LogLevel::VERY_VERBOSE: level_str = "[VV]  "; break;
-        case dlms_parser::LogLevel::VERBOSE:      level_str = "[VRB] "; break;
-        case dlms_parser::LogLevel::INFO:         level_str = "[INF] "; break;
-        case dlms_parser::LogLevel::WARNING:      level_str = "[WRN] "; break;
-        case dlms_parser::LogLevel::ERROR:        level_str = "[ERR] "; break;
-      }
-      all_logs += level_str;
-      all_logs += buffer;
-      all_logs += "\n";
-    }
-  });
 
   auto callback = [&](const char* obis_code, const float float_val, const char* str_val, const bool is_numeric) {
     if (is_numeric) {
@@ -55,9 +47,8 @@ void run_meter_test(const uint8_t* payload, size_t payload_size,
   };
 
   size_t objects_found = parser.parse(payload, payload_size, callback);
-
+  INFO("--- Parser Execution Logs ---\n" << log_messages);
   dlms_parser::Logger::set_log_function([](dlms_parser::LogLevel, const char*, va_list){});
-  INFO("--- Parser Execution Logs ---\n" << all_logs);
 
   CHECK(objects_found == expected_count);
 
