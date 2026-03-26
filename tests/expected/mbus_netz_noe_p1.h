@@ -40,10 +40,12 @@ const uint8_t mbus_netz_noe_p1_key[16] = {
     0xD6, 0xBC, 0x8B, 0x28, 0x2A, 0x79, 0x3B, 0xBB,
 };
 
-// 11 objects matched by T2 pattern after decryption
-constexpr size_t mbus_netz_noe_p1_expected_count = 11;
+// 11 T2 objects + 1 meter number (L, TSTR) = 12 total
+constexpr size_t mbus_netz_noe_p1_expected_count = 12;
 
-const std::map<std::string, std::string> mbus_netz_noe_p1_expected_strings = {};
+const std::map<std::string, std::string> mbus_netz_noe_p1_expected_strings = {
+    {"0.0.0.0.0.0", "181220000009"},   // Meter number (last element, no OBIS)
+};
 
 const std::map<std::string, float> mbus_netz_noe_p1_expected_floats = {
     {"1.0.1.8.0.255",  12937.0f},     // Active energy+ total (Wh), scaler=0

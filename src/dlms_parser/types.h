@@ -48,6 +48,7 @@ enum DlmsCipherConstants : uint8_t {
 
 enum class AxdrTokenType : uint8_t {
   EXPECT_TO_BE_FIRST,
+  EXPECT_TO_BE_LAST,
   EXPECT_TYPE_EXACT,
   EXPECT_TYPE_U_I_8,
   EXPECT_CLASS_ID_UNTAGGED,

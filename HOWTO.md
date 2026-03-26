@@ -140,7 +140,8 @@ Tokens are comma-separated. Order must match the byte order in the AXDR stream.
 
 | Token | Meaning | Hex example |
 |---|---|---|
-| `F` | First element guard — frame must start here (prevents mid-stream false match) | *(no bytes — position check only)* |
+| `F` | First element guard — must be element 0 of the enclosing structure/array | *(no bytes — position check only)* |
+| `L` | Last element guard — must be the final element of the enclosing structure/array | *(no bytes — position check only)* |
 | `C` | Class ID — 2-byte uint16, **no** type tag | `00 03` (class 3 = Register) |
 | `TC` | Tagged class ID — type byte `0x12` + 2-byte uint16 | `12 00 03` |
 | `O` | OBIS code — 6-byte octet string, **no** type tag | `01 00 01 08 00 FF` (1.0.1.8.0.255) |

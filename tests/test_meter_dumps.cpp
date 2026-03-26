@@ -163,6 +163,7 @@ TEST_CASE("Integration: Real Meter Dumps") {
         p.set_decryption_key(std::vector<uint8_t>(
             dlms::test_data::mbus_netz_noe_p1_key,
             dlms::test_data::mbus_netz_noe_p1_key + 16));
+        p.register_pattern("L, TSTR");
       }
     );
   }

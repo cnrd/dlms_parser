@@ -152,7 +152,7 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
   while (elements_consumed < elements_count) {
     const size_t original_position = this->pos_;
 
-    if (this->try_match_patterns_(elements_consumed)) {
+    if (this->try_match_patterns_(elements_consumed, elements_count)) {
       elements_consumed = static_cast<uint8_t>(
           elements_consumed + (this->last_pattern_elements_consumed_ ? this->last_pattern_elements_consumed_ : 1));
       this->last_pattern_elements_consumed_ = 0;
@@ -266,10 +266,10 @@ bool AxdrParser::capture_generic_value_(AxdrCaptures& c) {
   return true;
 }
 
-bool AxdrParser::try_match_patterns_(const uint8_t elem_idx) {
+bool AxdrParser::try_match_patterns_(const uint8_t elem_idx, const uint8_t elem_count) {
   for (const auto& p : this->patterns_) {
     const size_t saved_position = this->pos_;
-    if (uint8_t consumed = 0; this->match_pattern_(elem_idx, p, consumed)) {
+    if (uint8_t consumed = 0; this->match_pattern_(elem_idx, elem_count, p, consumed)) {
       this->last_pattern_elements_consumed_ = consumed;
       return true;
     }
@@ -278,7 +278,8 @@ bool AxdrParser::try_match_patterns_(const uint8_t elem_idx) {
   return false;
 }
 
-bool AxdrParser::match_pattern_(const uint8_t elem_idx, const AxdrDescriptorPattern& pat,
+bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count,
+                                const AxdrDescriptorPattern& pat,
                                 uint8_t& elements_consumed_at_level0) {
   AxdrCaptures cap{};
   elements_consumed_at_level0 = 0;
@@ -290,6 +291,9 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const AxdrDescriptorPatt
     switch (step.type) {
       case AxdrTokenType::EXPECT_TO_BE_FIRST:
         if (elem_idx != 0) return false;
+        break;
+      case AxdrTokenType::EXPECT_TO_BE_LAST:
+        if (elem_count == 0 || elem_idx != elem_count - 1) return false;
         break;
       case AxdrTokenType::EXPECT_TYPE_EXACT:
         if (this->read_byte_() != step.param_u8_a) return false;
@@ -378,12 +382,15 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const AxdrDescriptorPatt
   return true;
 }
 
+static constexpr uint8_t ZERO_OBIS[6] = {0, 0, 0, 0, 0, 0};
+
 void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptures& c) {
-  if (!c.obis) return;
+  // If no OBIS was captured by the pattern, use 0.0.0.0.0.0 as a placeholder.
+  const AxdrCaptures effective = c.obis ? c : [&] { auto copy = c; copy.obis = ZERO_OBIS; return copy; }();
 
   objects_found_++;
 
-  // Raw callback — delivers unmodified captures
+  // Raw callback — delivers original captures (obis may be nullptr)
   if (this->raw_cb_) {
     this->raw_cb_(c, pat);
   }
@@ -391,42 +398,42 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
   if (!this->cooked_cb_) return;
 
   char obis_str_buf[32];
-  obis_to_string(c.obis, obis_str_buf, sizeof(obis_str_buf));
+  obis_to_string(effective.obis, obis_str_buf, sizeof(obis_str_buf));
 
-  const float raw_val_f = data_as_float(c.value_type, c.value_ptr, c.value_len);
+  const float raw_val_f = data_as_float(effective.value_type, effective.value_ptr, effective.value_len);
   float val_f = raw_val_f;
 
   char val_s_buf[128];
-  data_to_string(c.value_type, c.value_ptr, c.value_len, val_s_buf, sizeof(val_s_buf));
+  data_to_string(effective.value_type, effective.value_ptr, effective.value_len, val_s_buf, sizeof(val_s_buf));
 
-  const bool is_numeric = c.value_type != DLMS_DATA_TYPE_OCTET_STRING &&
-                          c.value_type != DLMS_DATA_TYPE_STRING &&
-                          c.value_type != DLMS_DATA_TYPE_STRING_UTF8;
+  const bool is_numeric = effective.value_type != DLMS_DATA_TYPE_OCTET_STRING &&
+                          effective.value_type != DLMS_DATA_TYPE_STRING &&
+                          effective.value_type != DLMS_DATA_TYPE_STRING_UTF8;
 
-  if (c.has_scaler_unit && is_numeric) {
-    val_f *= static_cast<float>(std::pow(10, c.scaler));
+  if (effective.has_scaler_unit && is_numeric) {
+    val_f *= static_cast<float>(std::pow(10, effective.scaler));
   }
 
-  const uint16_t cid = c.class_id ? c.class_id : pat.default_class_id;
+  const uint16_t cid = effective.class_id ? effective.class_id : pat.default_class_id;
   Logger::log(LogLevel::DEBUG, "Pattern '%s' matched at pos %u — class_id=%d obis=%s",
-              pat.name.c_str(), c.elem_idx, cid, obis_str_buf);
+              pat.name.c_str(), effective.elem_idx, cid, obis_str_buf);
 
-  if (c.has_scaler_unit) {
+  if (effective.has_scaler_unit) {
     Logger::log(LogLevel::INFO, "  type=%s len=%d scaler=%d unit=%d",
-                dlms_data_type_to_string(c.value_type), c.value_len, c.scaler, c.unit_enum);
+                dlms_data_type_to_string(effective.value_type), effective.value_len, effective.scaler, effective.unit_enum);
   } else {
     Logger::log(LogLevel::INFO, "  type=%s len=%d",
-                dlms_data_type_to_string(c.value_type), c.value_len);
+                dlms_data_type_to_string(effective.value_type), effective.value_len);
   }
 
-  if (c.value_ptr && c.value_len > 0) {
+  if (effective.value_ptr && effective.value_len > 0) {
     char hex_buf[512];
-    format_hex_pretty_to(hex_buf, sizeof(hex_buf), c.value_ptr, c.value_len);
+    format_hex_pretty_to(hex_buf, sizeof(hex_buf), effective.value_ptr, effective.value_len);
     Logger::log(LogLevel::INFO, "  hex  : %s", hex_buf);
   }
   Logger::log(LogLevel::INFO, "  str  : '%s'", val_s_buf);
   Logger::log(LogLevel::INFO, "  float: %f", static_cast<double>(raw_val_f));
-  if (c.has_scaler_unit && is_numeric) {
+  if (effective.has_scaler_unit && is_numeric) {
     Logger::log(LogLevel::INFO, "  scaled: %f", static_cast<double>(val_f));
   }
 
@@ -463,6 +470,7 @@ void AxdrParser::register_pattern_dsl_(const std::string& name, const std::strin
     if (tok.empty()) continue;
 
     if      (tok == "F")  pat.steps.push_back({AxdrTokenType::EXPECT_TO_BE_FIRST});
+    else if (tok == "L")  pat.steps.push_back({AxdrTokenType::EXPECT_TO_BE_LAST});
     else if (tok == "C")  pat.steps.push_back({AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED});
     else if (tok == "TC") {
       pat.steps.push_back({AxdrTokenType::EXPECT_TYPE_EXACT, DLMS_DATA_TYPE_UINT16});
