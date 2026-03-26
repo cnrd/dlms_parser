@@ -42,6 +42,7 @@ private:
   bool parse_element_(uint8_t type, uint8_t depth = 0);
   bool parse_sequence_(uint8_t type, uint8_t depth = 0);
 
+  bool test_if_date_time_12b_(const uint8_t* buf = nullptr);
   bool capture_generic_value_(AxdrCaptures& c);
   bool try_match_patterns_(uint8_t elem_idx);
   bool match_pattern_(uint8_t elem_idx, const AxdrDescriptorPattern& pat, uint8_t& elements_consumed_at_level0);

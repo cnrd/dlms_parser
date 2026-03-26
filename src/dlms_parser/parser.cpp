@@ -15,6 +15,40 @@
 
 namespace dlms_parser {
 
+bool DlmsParser::test_if_date_time_12b_(const uint8_t* buf) {
+  if (buf == nullptr && this->pos_ + 12 > this->buffer_len_) return false;
+  const uint8_t* p = buf ? buf : &this->buffer_[this->pos_];
+
+  const uint16_t year = (p[0] << 8) | p[1];
+  if (!(year == 0x0000 || (year >= 1970 && year <= 2100))) return false;
+
+  const uint8_t month = p[2];
+  if (!(month == 0xFF || (month >= 1 && month <= 12))) return false;
+
+  const uint8_t day = p[3];
+  if (!(day == 0xFF || (day >= 1 && day <= 31))) return false;
+
+  const uint8_t dow = p[4];
+  if (!(dow == 0xFF || (dow >= 1 && dow <= 7))) return false;
+
+  const uint8_t hour = p[5];
+  if (!(hour == 0xFF || hour <= 23)) return false;
+
+  const uint8_t minute = p[6];
+  if (!(minute == 0xFF || minute <= 59)) return false;
+
+  const uint8_t second = p[7];
+  if (!(second == 0xFF || second <= 59)) return false;
+
+  const uint8_t ms = p[8];
+  if (!(ms == 0xFF || ms <= 99)) return false;
+
+  const int16_t s_dev = static_cast<int16_t>((p[9] << 8) | p[10]);
+  if (!(s_dev == static_cast<int16_t>(0x8000) || (s_dev >= -720 && s_dev <= 720))) return false;
+
+  return true;
+}
+
 DlmsParser::DlmsParser() {
   this->load_default_patterns_();
 }
@@ -328,6 +362,10 @@ bool DlmsParser::capture_generic_value_(AxdrCaptures& c) {
     c.value_len = static_cast<uint8_t>(data_bytes > 255 ? 255 : data_bytes);
     this->pos_ += data_bytes;
   }
+  if (vt == DLMS_DATA_TYPE_OCTET_STRING && c.value_len == 12 && this->test_if_date_time_12b_(c.value_ptr)) {
+    vt = DLMS_DATA_TYPE_DATETIME;
+  }
+
   c.value_type = static_cast<DlmsDataType>(vt);
   return true;
 }
@@ -390,6 +428,16 @@ bool DlmsParser::match_pattern_(const uint8_t elem_idx, const AxdrDescriptorPatt
       break;
     case AxdrTokenType::EXPECT_VALUE_GENERIC:
       if (!this->capture_generic_value_(cap)) return false;
+      consume_one();
+      break;
+    case AxdrTokenType::EXPECT_VALUE_DTM_AS_OCTET_STRING:
+      if (this->read_byte_() != DLMS_DATA_TYPE_OCTET_STRING) return false;
+      if (this->read_byte_() != 12) return false;
+      if (this->pos_ + 12 > this->buffer_len_) return false;
+      cap.value_ptr = &this->buffer_[this->pos_];
+      cap.value_len = 12;
+      cap.value_type = DLMS_DATA_TYPE_DATETIME;
+      this->pos_ += 12;
       consume_one();
       break;
     case AxdrTokenType::EXPECT_STRUCTURE_N:
@@ -521,6 +569,7 @@ void DlmsParser::register_pattern_dsl_(const std::string& name, const std::strin
       pat.steps.push_back({AxdrTokenType::EXPECT_UNIT_ENUM_TAGGED});
       pat.steps.push_back({AxdrTokenType::GOING_UP});
     } else if (tok == "V" || tok == "TV") pat.steps.push_back({AxdrTokenType::EXPECT_VALUE_GENERIC});
+    else if (tok == "TVODTM") pat.steps.push_back({AxdrTokenType::EXPECT_VALUE_DTM_AS_OCTET_STRING});
     else if (tok.size() >= 2 && tok.substr(0, 2) == "S(") {
       const size_t l = tok.find('(');
       if (const size_t r = tok.rfind(')'); l != std::string::npos && r != std::string::npos && r > l + 1) {
