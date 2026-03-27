@@ -4,8 +4,8 @@
 namespace dlms_parser {
 
 static constexpr uint8_t HDLC_FLAG       = 0x7E;
-static constexpr uint8_t HDLC_ESCAPE     = 0x7D;
-static constexpr uint8_t HDLC_ESCAPE_XOR = 0x20;
+// static constexpr uint8_t HDLC_ESCAPE     = 0x7D;   // byte-stuffing disabled, see decode_one_()
+// static constexpr uint8_t HDLC_ESCAPE_XOR = 0x20;
 static constexpr uint8_t HDLC_SEG_BIT   = 0x08;  // bit 3 of frame-type byte: "more frames follow"
 
 // After running crc16_x25_check_ over a data region AND then over the two stored CRC
@@ -53,7 +53,9 @@ bool HdlcDecoder::decode(const uint8_t* buf, size_t len, std::vector<uint8_t>& a
     offset  += frame_total;
     is_first = false;
 
-    if (!segmented) break;
+    // If segmented, more frames must follow. If not segmented but more data remains,
+    // continue anyway — handles GBT (General Block Transfer) multi-frame without HDLC segmentation.
+    if (!segmented && offset >= len) break;
   } while (offset < len);
 
   if (apdu_out.empty()) {
@@ -79,29 +81,36 @@ bool HdlcDecoder::decode_one_(const uint8_t* frame, size_t len,
     return false;
   }
 
-  // Destuff: remove 0x7D escape bytes from frame[1..len-2].
-  // Per HDLC / RFC 1662: 0x7D prefix means the next byte is XOR'd with 0x20.
-  std::vector<uint8_t> buf;
-  buf.reserve(len - 2);
-  {
-    bool escaped = false;
-    for (size_t i = 1; i < len - 1; ++i) {
-      if (frame[i] == HDLC_ESCAPE) {
-        escaped = true;
-      } else if (escaped) {
-        buf.push_back(static_cast<uint8_t>(frame[i] ^ HDLC_ESCAPE_XOR));
-        escaped = false;
-      } else {
-        buf.push_back(frame[i]);
-      }
-    }
-    if (escaped) {
-      Logger::log(LogLevel::WARNING, "HDLC: trailing escape byte");
-      return false;
-    }
-  }
-  const uint8_t* b    = buf.data();
-  const size_t   blen = buf.size();
+  // DLMS/COSEM HDLC uses length-based framing — no byte-stuffing.
+  // RFC 1662 escape sequences (0x7D) are NOT used in DLMS transparent mode.
+  // The content is the raw bytes between the two 0x7E flags.
+  const uint8_t* b    = frame + 1;
+  const size_t   blen = len - 2;
+
+  // NOTE: byte-stuffing (destuffing) is intentionally disabled. If a future meter
+  // requires it, uncomment the block below and use buf.data()/buf.size() instead of b/blen.
+  //
+  // std::vector<uint8_t> buf;
+  // buf.reserve(len - 2);
+  // {
+  //   bool escaped = false;
+  //   for (size_t i = 1; i < len - 1; ++i) {
+  //     if (frame[i] == HDLC_ESCAPE) {
+  //       escaped = true;
+  //     } else if (escaped) {
+  //       buf.push_back(static_cast<uint8_t>(frame[i] ^ HDLC_ESCAPE_XOR));
+  //       escaped = false;
+  //     } else {
+  //       buf.push_back(frame[i]);
+  //     }
+  //   }
+  //   if (escaped) {
+  //     Logger::log(LogLevel::WARNING, "HDLC: trailing escape byte");
+  //     return false;
+  //   }
+  // }
+  // const uint8_t* b    = buf.data();
+  // const size_t   blen = buf.size();
 
   if (blen < 2) {
     Logger::log(LogLevel::WARNING, "HDLC: destuffed frame too short");

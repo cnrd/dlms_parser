@@ -17,6 +17,7 @@ Main facade that composes frame decoding, APDU handling, decryption, and AXDR pa
 | `load_default_patterns()` | Register built-in patterns `T1`, `T2`, `T3`, `U.ZPA` |
 | `register_pattern(dsl)` | Register a custom pattern with name `CUSTOM` and priority `0` |
 | `register_pattern(name, dsl, priority)` | Register a named pattern with explicit priority |
+| `register_pattern(name, dsl, priority, default_obis)` | Register with a default 6-byte OBIS (used when pattern has no `TO`/`O`) |
 | `parse(buf, len, cooked_cb, raw_cb)` | Parse one complete frame and return the number of matched objects |
 
 ### `FrameFormat`
@@ -159,8 +160,9 @@ Common APDU tags accepted by the parser:
 | Byte | Meaning |
 |---|---|
 | `0x0F` | `DATA-NOTIFICATION` |
-| `0xDB` | `General-GLO-Ciphering` |
-| `0xDF` | `General-DED-Ciphering` |
+| `0xE0` | `General-Block-Transfer` — reassembles numbered blocks, then re-enters APDU parsing |
+| `0xDB` | `General-GLO-Ciphering` — encrypted, needs decryption key |
+| `0xDF` | `General-DED-Ciphering` — encrypted, needs decryption key |
 | `0x01` | raw AXDR array |
 | `0x02` | raw AXDR structure |
 

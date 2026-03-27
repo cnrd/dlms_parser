@@ -10,6 +10,10 @@ bool ApduHandler::parse(const uint8_t* buf, size_t len, AxdrPayloadCallback cb) 
     const uint8_t* rest = buf + pos + 1;
     const size_t rest_len = len - pos - 1;
 
+    if (tag == DLMS_APDU_GENERAL_BLOCK_TRANSFER) {
+      Logger::log(LogLevel::DEBUG, "Found General-Block-Transfer (0xE0) at offset %zu", pos);
+      return parse_general_block_transfer_(buf + pos, len - pos, cb);
+    }
     if (tag == DLMS_APDU_DATA_NOTIFICATION) {
       Logger::log(LogLevel::DEBUG, "Found DATA-NOTIFICATION (0x0F) at offset %zu", pos);
       return parse_data_notification_(rest, rest_len, cb);
@@ -128,6 +132,47 @@ bool ApduHandler::parse_ciphered_apdu_(const uint8_t* buf, size_t len, uint8_t /
 
   // Decrypted payload begins with the inner APDU tag (typically 0x0F) — recurse
   return parse(plain.data(), plain.size(), cb);
+}
+
+bool ApduHandler::parse_general_block_transfer_(const uint8_t* buf, size_t len,
+                                                 AxdrPayloadCallback cb) const {
+  // GBT block format: E0 [ctrl:1] [block_num:2] [block_num_ack:2] [BER_len] [data...]
+  // Reassemble all blocks, then recurse into parse().
+  std::vector<uint8_t> reassembled;
+  size_t pos = 0;
+
+  while (pos < len && buf[pos] == DLMS_APDU_GENERAL_BLOCK_TRANSFER) {
+    if (pos + 7 > len) {
+      Logger::log(LogLevel::WARNING, "GBT: truncated block header at offset %zu", pos);
+      return false;
+    }
+    const uint8_t ctrl = buf[pos + 1];
+    const bool is_last = (ctrl & 0x80U) != 0;
+    const uint16_t block_num = static_cast<uint16_t>(buf[pos + 2] << 8 | buf[pos + 3]);
+    // pos+4..pos+5: block_num_ack (skip)
+    const uint8_t block_len = buf[pos + 6];
+
+    if (pos + 7 + block_len > len) {
+      Logger::log(LogLevel::WARNING, "GBT: block %u truncated (need %u, have %zu)",
+                  block_num, block_len, len - pos - 7);
+      return false;
+    }
+
+    Logger::log(LogLevel::DEBUG, "GBT block %u: %u bytes%s", block_num, block_len,
+                is_last ? " (last)" : "");
+    reassembled.insert(reassembled.end(), buf + pos + 7, buf + pos + 7 + block_len);
+    pos += 7 + block_len;
+
+    if (is_last) break;
+  }
+
+  if (reassembled.empty()) {
+    Logger::log(LogLevel::WARNING, "GBT: no payload after reassembly");
+    return false;
+  }
+
+  Logger::log(LogLevel::DEBUG, "GBT: reassembled %zu bytes from blocks", reassembled.size());
+  return parse(reassembled.data(), reassembled.size(), cb);
 }
 
 }  // namespace dlms_parser

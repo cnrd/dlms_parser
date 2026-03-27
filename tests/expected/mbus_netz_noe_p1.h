@@ -44,7 +44,7 @@ const uint8_t mbus_netz_noe_p1_key[16] = {
 constexpr size_t mbus_netz_noe_p1_expected_count = 12;
 
 const std::map<std::string, std::string> mbus_netz_noe_p1_expected_strings = {
-    {"0.0.0.0.0.0", "181220000009"},   // Meter number (last element, no OBIS)
+    {"0.0.96.1.0.255", "181220000009"},   // Meter number (last element, default OBIS from pattern)
 };
 
 const std::map<std::string, float> mbus_netz_noe_p1_expected_floats = {

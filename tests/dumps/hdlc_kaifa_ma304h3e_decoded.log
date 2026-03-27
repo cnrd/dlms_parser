@@ -1,0 +1,60 @@
+Input: tests/dumps/hdlc_kaifa_ma304h3e.log (123 bytes)
+
+=== HDLC frame 1 (123 bytes) ===
+7E                                     <-- opening flag
+A0 79                                  <-- format, length=121
+01                                       <-- dst addr (1B)
+02 01                                    <-- src addr (2B)
+10                                     <-- control byte
+80 93                                  <-- HCS (OK)
+... FCS: 11 5C (OK)
+E6 E7 00                               <-- LLC header
+Payload: 108 bytes
+7E                                     <-- closing flag
+
+=== APDU: DATA-NOTIFICATION ===
+0F                                     <-- DATA-NOTIFICATION tag
+40 00 00 00                              <-- Long-Invoke-ID
+09                                     <-- DateTime: OCTET_STRING
+  0C                                   <-- length = 12
+  07 E1 09 0F 05 05 21 28 FF 80 00 00
+  = 2017-09-15 05:33:40
+
+=== AXDR payload (89 bytes) ===
+02                                     <-- STRUCTURE
+  0D                                   <-- 13 elements
+  --- element [1/13] ---
+  09                                     <-- OCTET_STRING
+    07                                   <-- length = 7
+    4B 46 4D 5F 30 30 31
+    = "KFM_001"
+  --- element [2/13] ---
+  09                                     <-- OCTET_STRING
+    10                                   <-- length = 16
+    36 39 37 30 36 33 31 34 30 31 37 35 33 39 38 35
+    = "6970631401753985"
+  --- element [3/13] ---
+  09                                     <-- OCTET_STRING
+    08                                   <-- length = 8
+    4D 41 33 30 34 48 33 45
+    = "MA304H3E"
+  --- element [4/13] ---
+  06 00 00 03 B4                             <-- UINT32 = 948 (0x000003B4)
+  --- element [5/13] ---
+  06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+  --- element [6/13] ---
+  06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+  --- element [7/13] ---
+  06 00 00 00 40                             <-- UINT32 = 64 (0x00000040)
+  --- element [8/13] ---
+  06 00 00 05 88                             <-- UINT32 = 1416 (0x00000588)
+  --- element [9/13] ---
+  06 00 00 0C A9                             <-- UINT32 = 3241 (0x00000CA9)
+  --- element [10/13] ---
+  06 00 00 0C 2F                             <-- UINT32 = 3119 (0x00000C2F)
+  --- element [11/13] ---
+  06 00 00 09 51                             <-- UINT32 = 2385 (0x00000951)
+  --- element [12/13] ---
+  06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+  --- element [13/13] ---
+  06 00 00 09 55                             <-- UINT32 = 2389 (0x00000955)

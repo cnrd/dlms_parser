@@ -1,0 +1,209 @@
+Input: tests/dumps/raw_salzburg_netz.log (336 bytes)
+
+=== Transport: RAW (no frame wrapper) ===
+
+=== APDU: DATA-NOTIFICATION ===
+0F                                     <-- DATA-NOTIFICATION tag
+00 17 FA 98                              <-- Long-Invoke-ID
+0C                                     <-- DateTime: 12 raw bytes
+  07 E6 0B 0C 06 10 36 00 00 FF C4 00
+  = 2022-11-12 16:54:00.00 -01:00
+
+=== AXDR payload (318 bytes) ===
+02                                     <-- STRUCTURE
+  10                                   <-- 16 elements
+  --- element [1/16] ---
+  09 06 00 00 01 00 00 FF                    <-- OBIS 0.0.1.0.0.255, Clock / datetime
+  --- element [2/16] ---
+  09                                     <-- OCTET_STRING (datetime)
+    0C                                   <-- length = 12
+    07 E6 0B 0C 06 10 36 00 00 FF C4 00
+    = 2022-11-12 16:54:00.00 -01:00
+  --- element [3/16] ---
+  02                                     <-- STRUCTURE
+    02                                   <-- 2 elements
+    --- element [1/2] ---
+    09 06 00 00 60 01 00 FF                    <-- OBIS 0.0.96.1.0.255, Meter serial number
+    --- element [2/2] ---
+    09                                     <-- OCTET_STRING
+      0E                                   <-- length = 14
+      31 4B 46 4D 30 32 30 30 32 33 34 38 30 34
+      = "1KFM0200234804"
+  --- element [4/16] ---
+  02                                     <-- STRUCTURE
+    02                                   <-- 2 elements
+    --- element [1/2] ---
+    09 06 00 00 2A 00 00 FF                    <-- OBIS 0.0.42.0.0.255, Logical device name
+    --- element [2/2] ---
+    09                                     <-- OCTET_STRING
+      10                                   <-- length = 16
+      4B 46 4D 31 32 30 30 32 30 30 32 33 34 38 30 34
+      = "KFM1200200234804"
+  --- element [5/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 20 07 00 FF                    <-- OBIS 1.0.32.7.0.255, Voltage L1 (V)
+    --- element [2/3] ---
+    12 08 F4                                   <-- UINT16 = 2292
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F FF                                      <-- INT8 = -1
+      --- element [2/2] ---
+      16 23                                      <-- ENUM = 35 (V)
+  --- element [6/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 34 07 00 FF                    <-- OBIS 1.0.52.7.0.255, Voltage L2 (V)
+    --- element [2/3] ---
+    12 09 0C                                   <-- UINT16 = 2316
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F FF                                      <-- INT8 = -1
+      --- element [2/2] ---
+      16 23                                      <-- ENUM = 35 (V)
+  --- element [7/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 48 07 00 FF                    <-- OBIS 1.0.72.7.0.255, Voltage L3 (V)
+    --- element [2/3] ---
+    12 09 0A                                   <-- UINT16 = 2314
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F FF                                      <-- INT8 = -1
+      --- element [2/2] ---
+      16 23                                      <-- ENUM = 35 (V)
+  --- element [8/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 1F 07 00 FF                    <-- OBIS 1.0.31.7.0.255, Current L1 (A)
+    --- element [2/3] ---
+    12 00 A5                                   <-- UINT16 = 165
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F FE                                      <-- INT8 = -2
+      --- element [2/2] ---
+      16 21                                      <-- ENUM = 33 (A)
+  --- element [9/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 33 07 00 FF                    <-- OBIS 1.0.51.7.0.255, Current L2 (A)
+    --- element [2/3] ---
+    12 00 AD                                   <-- UINT16 = 173
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F FE                                      <-- INT8 = -2
+      --- element [2/2] ---
+      16 21                                      <-- ENUM = 33 (A)
+  --- element [10/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 47 07 00 FF                    <-- OBIS 1.0.71.7.0.255, Current L3 (A)
+    --- element [2/3] ---
+    12 00 25                                   <-- UINT16 = 37
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F FE                                      <-- INT8 = -2
+      --- element [2/2] ---
+      16 21                                      <-- ENUM = 33 (A)
+  --- element [11/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 01 07 00 FF                    <-- OBIS 1.0.1.7.0.255, Active power+ (W)
+    --- element [2/3] ---
+    06 00 00 02 CA                             <-- UINT32 = 714 (0x000002CA)
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F 00                                      <-- INT8 = 0
+      --- element [2/2] ---
+      16 1B                                      <-- ENUM = 27 (W)
+  --- element [12/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 02 07 00 FF                    <-- OBIS 1.0.2.7.0.255, Active power- (W)
+    --- element [2/3] ---
+    06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F 00                                      <-- INT8 = 0
+      --- element [2/2] ---
+      16 1B                                      <-- ENUM = 27 (W)
+  --- element [13/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 01 08 00 FF                    <-- OBIS 1.0.1.8.0.255, Active energy+ total (Wh)
+    --- element [2/3] ---
+    06 00 14 41 60                             <-- UINT32 = 1327456 (0x00144160)
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F 00                                      <-- INT8 = 0
+      --- element [2/2] ---
+      16 1E                                      <-- ENUM = 30 (Wh)
+  --- element [14/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 02 08 00 FF                    <-- OBIS 1.0.2.8.0.255, Active energy- total (Wh)
+    --- element [2/3] ---
+    06 00 00 00 00                             <-- UINT32 = 0 (0x00000000)
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F 00                                      <-- INT8 = 0
+      --- element [2/2] ---
+      16 1E                                      <-- ENUM = 30 (Wh)
+  --- element [15/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 03 08 00 FF                    <-- OBIS 1.0.3.8.0.255, Reactive energy+ total (varh)
+    --- element [2/3] ---
+    06 00 00 12 D2                             <-- UINT32 = 4818 (0x000012D2)
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F 00                                      <-- INT8 = 0
+      --- element [2/2] ---
+      16 20                                      <-- ENUM = 32 (varh)
+  --- element [16/16] ---
+  02                                     <-- STRUCTURE
+    03                                   <-- 3 elements
+    --- element [1/3] ---
+    09 06 01 00 04 08 00 FF                    <-- OBIS 1.0.4.8.0.255, Reactive energy- total (varh)
+    --- element [2/3] ---
+    06 00 05 BE 60                             <-- UINT32 = 376416 (0x0005BE60)
+    --- element [3/3] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      0F 00                                      <-- INT8 = 0
+      --- element [2/2] ---
+      16 20                                      <-- ENUM = 32 (varh)

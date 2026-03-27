@@ -156,7 +156,7 @@ void data_to_string(const DlmsDataType value_type, const uint8_t* ptr, const uin
     datetime_to_string(ptr, len, buffer, max_len);
     break;
   case DLMS_DATA_TYPE_BIT_STRING:
-  case DLMS_DATA_TYPE_BINARY_CODED_DESIMAL:
+  case DLMS_DATA_TYPE_BINARY_CODED_DECIMAL:
   case DLMS_DATA_TYPE_DATE:
   case DLMS_DATA_TYPE_TIME:
     hex_of(ptr, len, buffer, max_len);
@@ -215,7 +215,7 @@ const char* dlms_data_type_to_string(const DlmsDataType vt) {
   case DLMS_DATA_TYPE_OCTET_STRING: return "OCTET_STRING";
   case DLMS_DATA_TYPE_STRING: return "STRING";
   case DLMS_DATA_TYPE_STRING_UTF8: return "STRING_UTF8";
-  case DLMS_DATA_TYPE_BINARY_CODED_DESIMAL: return "BINARY_CODED_DESIMAL";
+  case DLMS_DATA_TYPE_BINARY_CODED_DECIMAL: return "BINARY_CODED_DECIMAL";
   case DLMS_DATA_TYPE_INT8: return "INT8";
   case DLMS_DATA_TYPE_INT16: return "INT16";
   case DLMS_DATA_TYPE_UINT8: return "UINT8";
@@ -268,7 +268,7 @@ bool is_value_data_type(const DlmsDataType type) {
   case DLMS_DATA_TYPE_UINT32:
   case DLMS_DATA_TYPE_OCTET_STRING:
   case DLMS_DATA_TYPE_STRING:
-  case DLMS_DATA_TYPE_BINARY_CODED_DESIMAL:
+  case DLMS_DATA_TYPE_BINARY_CODED_DECIMAL:
   case DLMS_DATA_TYPE_STRING_UTF8:
   case DLMS_DATA_TYPE_INT8:
   case DLMS_DATA_TYPE_INT16:

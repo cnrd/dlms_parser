@@ -32,9 +32,11 @@ flowchart TD
         RAW --> APDU_BYTES
 
         APDU_BYTES --> APDU["2. ApduHandler::parse()"]
+        APDU -->|"0xE0"| GBT["General-Block-Transfer<br/>reassembles numbered blocks"]
         APDU -->|"0x0F"| DN["DATA-NOTIFICATION<br/>strips Long-Invoke-ID + datetime"]
         APDU -->|"0xDB / 0xDF"| CIPHER["Ciphered APDU<br/>decrypts with GcmDecryptor"]
         APDU -->|"0x01 / 0x02"| RAWAXDR["raw AXDR<br/>no APDU wrapper"]
+        GBT -->|"re-enters step 2"| APDU
         CIPHER -->|"re-enters step 2"| APDU
 
         DN --> AXDR_BYTES["raw AXDR bytes"]
@@ -50,10 +52,11 @@ flowchart TD
 Key behavior:
 
 - `parse()` is called once per complete frame
+- the APDU handler **scans** the buffer byte-by-byte for the first recognized tag (`0xE0`, `0x0F`, `0xDB`, `0xDF`, `0x01`, `0x02`) — unknown leading bytes are skipped
+- GBT blocks are reassembled and the result re-enters APDU parsing
+- encrypted APDUs are decrypted and the plaintext re-enters APDU parsing
 - `raw_cb` runs before `cooked_cb` for the same match
-- patterns are tried in ascending priority order
-- first matching pattern wins
-- encrypted APDUs are decrypted transparently before AXDR parsing
+- patterns are tried in ascending priority order; first match wins
 
 ## Choosing The Frame Format
 
@@ -70,8 +73,9 @@ parser.set_frame_format(dlms_parser::FrameFormat::MBUS);
 | First byte | Meaning |
 |---|---|
 | `0x0F` | `DATA-NOTIFICATION` |
-| `0xDB` | `General-GLO-Ciphering` |
-| `0xDF` | `General-DED-Ciphering` |
+| `0xE0` | `General-Block-Transfer` (reassembles blocks, then re-enters APDU parsing) |
+| `0xDB` | `General-GLO-Ciphering` (encrypted, needs key) |
+| `0xDF` | `General-DED-Ciphering` (encrypted, needs key) |
 | `0x01` | raw AXDR array |
 | `0x02` | raw AXDR structure |
 
@@ -121,8 +125,15 @@ Built-in patterns:
 Register a custom pattern when your meter emits a different structure:
 
 ```cpp
+// Simple — name="CUSTOM", priority=0 (tried before built-ins)
 parser.register_pattern("TC, TO, TDTM");
+
+// Named with explicit priority
 parser.register_pattern("MyPattern", "TO, TV, S(TS, TU)", 5);
+
+// With default OBIS — used when the pattern captures no OBIS code
+const uint8_t meter_obis[] = {0, 0, 96, 1, 0, 255};  // 0.0.96.1.0.255
+parser.register_pattern("MeterID", "L, TSTR", 0, meter_obis);
 ```
 
 Pattern priority matters:
@@ -134,11 +145,12 @@ Pattern priority matters:
 Common examples:
 
 ```cpp
-parser.register_pattern("TC, TO, TDTM");
-parser.register_pattern("C, O, A, V, TS, TU");
-parser.register_pattern("TO, TV, S(TS, TU)");
-parser.register_pattern("L, TSTR");
-parser.register_pattern("TOW, TV, TSU");
+parser.register_pattern("TC, TO, TDTM");          // datetime value
+parser.register_pattern("C, O, A, V, TS, TU");    // untagged flat
+parser.register_pattern("TO, TV, S(TS, TU)");     // tagged with scaler-unit
+parser.register_pattern("TO, TV");                 // flat OBIS + value pairs (no scaler)
+parser.register_pattern("L, TSTR");                // last element as string
+parser.register_pattern("TOW, TV, TSU");           // Landis+Gyr swapped OBIS
 ```
 
 The full token reference is in [REFERENCE.md](REFERENCE.md).
@@ -193,7 +205,11 @@ Behavior:
 
 - numeric values arrive with the scaler already applied
 - string-like values are returned through `str_val`
-- if a pattern captured no OBIS code, the placeholder `0.0.0.0.0.0` is used
+- if a pattern captured no OBIS code, OBIS `0.0.0.0.0.0` is used by default. This can be overridden per-pattern using the `default_obis` overload:
+  ```cpp
+  const uint8_t obis[] = {0, 0, 96, 1, 0, 255};  // 0.0.96.1.0.255
+  parser.register_pattern("MeterID", "L, TSTR", 0, obis);
+  ```
 
 The raw callback is useful when you need access to the original value bytes, scaler, or unit:
 
@@ -285,6 +301,7 @@ Examples of meter-specific customization from the test suite:
 - Iskra 550: `S(TO, TV)`
 - Aidon HAN: `S(TO, TV)`
 - Landis+Gyr ZMF100: `set_skip_crc_check(true)`, `S(TO, TDTM)`, `S(TO, TV)`, `TOW, TV, TSU`
+- Landis+Gyr E450: decryption key, `TO, TV` (3 HDLC frames with General-Block-Transfer + encryption)
 - Netz NOE P1: decryption key plus `L, TSTR`
 
 ## Troubleshooting
@@ -299,5 +316,7 @@ Examples of meter-specific customization from the test suite:
 | `Decryption failed` | wrong key or corrupted ciphertext |
 | values look scaled incorrectly | inspect scaler/unit handling or use the cooked callback |
 | unsupported APDU warning | the meter uses a wrapper not handled by the library |
+| `GBT: truncated block` | incomplete General-Block-Transfer frame — buffer may be cut short |
+| object captured with OBIS `0.0.0.0.0.0` | pattern has no `TO`/`O` token — use `default_obis` overload |
 
 For exact callback signatures, token definitions, and public API details, see [REFERENCE.md](REFERENCE.md).

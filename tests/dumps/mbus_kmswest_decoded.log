@@ -1,0 +1,11 @@
+Input: tests/dumps/mbus_kmswest.log (99 bytes)
+
+=== M-Bus frame 1 (L=93, 99 bytes) ===
+68 5D 5D 68                             <-- intro (L=93)
+C=53 A=FF CI=10 STSAP=01 DTSAP=67
+CS: 83 (OK), stop: 16
+Payload: 88 bytes
+
+=== APDU: General-GLO-Ciphering (0xDB) ===
+Encrypted payload — cannot decode without key
+First 32 bytes: DB 08 45 4C 53 65 70 00 00 01 4D 20 00 00 54 1F E2 A3 30 AD 29 E0 D6 8C 09 36 5B A2 86 DB F3 A7

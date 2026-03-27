@@ -1,0 +1,13 @@
+Input: tests/dumps/raw_energomera.log (262 bytes)
+
+=== Transport: RAW (no frame wrapper) ===
+
+=== APDU: DATA-NOTIFICATION ===
+0F                                     <-- DATA-NOTIFICATION tag
+26 19 FF FF                              <-- Long-Invoke-ID
+4C                                     <-- DateTime: unknown flag
+
+=== AXDR payload (244 bytes) ===
+00                                     <-- NULL
+
+Unparsed tail (243 bytes): 00 19 09 00 FF 0F 02 12 00 00 02 02 16 00 01 00 02 06 12 00 01 09 06 00 00 60 05 86 FF 0F 02 12
