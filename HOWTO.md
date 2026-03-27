@@ -97,6 +97,16 @@ For **RAW** mode the APDU must start with one of:
 | `0x01` | ARRAY — raw AXDR, no APDU wrapper (some HDLC meters) |
 | `0x02` | STRUCTURE — raw AXDR, no APDU wrapper |
 
+Some meters send frames with incorrect or non-standard CRC/checksum values
+(e.g. Landis+Gyr). To accept such frames, disable the integrity check:
+
+```cpp
+parser.set_skip_crc_check(true);
+```
+
+This skips HCS + FCS validation for HDLC and checksum validation for M-Bus.
+Has no effect in RAW mode. Default is `false` (checks enabled).
+
 ---
 
 ## Step 2 — Set a Decryption Key (if needed)
@@ -242,7 +252,18 @@ parser.parse(buf, len, nullptr, on_raw);   // raw only
 
 ## Step 5 — Logging
 
-By default all log output is suppressed. Install a handler to see it:
+By default all log output is suppressed. Install a handler to see it.
+
+Log levels (from most to least verbose):
+
+| Level | Typical content |
+|---|---|
+| `DEBUG` | Pattern matches, structure traversal, byte counts |
+| `VERY_VERBOSE` | Individual element skips, type details |
+| `VERBOSE` | Parsing warnings, datetime flags |
+| `INFO` | Matched object details (OBIS, value, scaler) |
+| `WARNING` | Frame errors, CRC failures, missing keys |
+| `ERROR` | Decryption failures, fatal parse errors |
 
 ```cpp
 dlms_parser::Logger::set_log_function(

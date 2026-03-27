@@ -6,6 +6,11 @@ DlmsParser::DlmsParser() {
   apdu_handler_.set_decryptor(&decryptor_);
 }
 
+void DlmsParser::set_skip_crc_check(bool skip) {
+  hdlc_decoder_.set_skip_crc_check(skip);
+  mbus_decoder_.set_skip_crc_check(skip);
+}
+
 void DlmsParser::set_decryption_key(const std::array<uint8_t, 16>& key) {
   decryptor_.set_key(key);
 }

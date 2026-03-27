@@ -95,8 +95,8 @@ void run_meter_test(const char* name,
 // ---------------------------------------------------------
 TEST_CASE("Integration: Real Meter Dumps") {
 
-  SUBCASE("Sagemcom XT211") {
-    run_meter_test("Sagemcom XT211",
+  SUBCASE("Sagemcom XT211 (RAW APDU)") {
+    run_meter_test("Sagemcom XT211 (RAW APDU)",
       dlms::test_data::sagemcom_xt211_raw_frame,
       sizeof(dlms::test_data::sagemcom_xt211_raw_frame),
       dlms::test_data::sagemcom_xt211_expected_count,
@@ -171,8 +171,8 @@ TEST_CASE("Integration: Real Meter Dumps") {
     );
   }
 
-  SUBCASE("Energomera (RAW)") {
-    run_meter_test("Energomera (RAW)",
+  SUBCASE("Energomera (RAW APDU)") {
+    run_meter_test("Energomera (RAW APDU)",
       dlms::test_data::raw_energomera_frame,
       sizeof(dlms::test_data::raw_energomera_frame),
       dlms::test_data::raw_energomera_expected_count,
@@ -190,6 +190,7 @@ TEST_CASE("Integration: Real Meter Dumps") {
       dlms::test_data::hdlc_landis_gyr_zmf100_expected_floats,
       dlms_parser::FrameFormat::HDLC,
       [](dlms_parser::DlmsParser& p) {
+        p.set_skip_crc_check(true);  // log has incorrect FCS transcription
         p.register_pattern("S(TO, TDTM)");
         p.register_pattern("S(TO, TV)");
         p.register_pattern("TOW, TV, TSU");  // Landis+Gyr firmware bug: 06 09 instead of 09 06
@@ -197,8 +198,19 @@ TEST_CASE("Integration: Real Meter Dumps") {
     );
   }
 
-  SUBCASE("Salzburg Netz (RAW)") {
-    run_meter_test("Salzburg Netz (RAW)",
+  SUBCASE("Landis+Gyr ZMF100 — CRC check rejects bad FCS") {
+    // Same frame without skip_crc_check — parse must return 0 (bad FCS)
+    dlms_parser::DlmsParser parser;
+    parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
+    size_t n = parser.parse(
+      dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
+      sizeof(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
+      [](const char*, float, const char*, bool) {});
+    CHECK(n == 0);
+  }
+
+  SUBCASE("Salzburg Netz (RAW APDU)") {
+    run_meter_test("Salzburg Netz (RAW APDU)",
       dlms::test_data::raw_salzburg_netz_frame,
       sizeof(dlms::test_data::raw_salzburg_netz_frame),
       dlms::test_data::raw_salzburg_netz_expected_count,

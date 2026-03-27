@@ -21,6 +21,7 @@ class DlmsParser final : NonCopyableAndNonMovable {
   DlmsParser();
 
   void set_frame_format(FrameFormat fmt) { frame_format_ = fmt; }
+  void set_skip_crc_check(bool skip);
   void set_decryption_key(const std::array<uint8_t, 16>& key);
   void set_decryption_key(const std::vector<uint8_t>& key);
 

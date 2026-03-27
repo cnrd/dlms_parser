@@ -21,7 +21,11 @@ namespace dlms_parser {
 // only the raw DLMS/COSEM application bytes (data...) are returned.
 class MBusDecoder {
  public:
+  void set_skip_crc_check(bool skip) { skip_crc_check_ = skip; }
   bool decode(const uint8_t* frame, size_t len, std::vector<uint8_t>& apdu_out) const;
+
+ private:
+  bool skip_crc_check_{false};
 };
 
 }  // namespace dlms_parser

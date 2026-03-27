@@ -52,7 +52,7 @@ bool MBusDecoder::decode(const uint8_t* frame, size_t len, std::vector<uint8_t>&
     for (size_t i = 0; i < L; ++i) {
       cs += frame[offset + MBUS_INTRO + i];
     }
-    if (cs != frame[offset + MBUS_INTRO + L]) {
+    if (!skip_crc_check_ && cs != frame[offset + MBUS_INTRO + L]) {
       Logger::log(LogLevel::WARNING, "MBUS: checksum error (calc=0x%02X, stored=0x%02X)",
                   cs, frame[offset + MBUS_INTRO + L]);
       return false;

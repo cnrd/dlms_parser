@@ -1,12 +1,28 @@
 {
   "name": "dlms_parser",
   "version": "1.0.0",
-  "description": "A lightweight, standalone C++ library for parsing DLMS/COSEM AXDR payloads.",
-  "keywords": [ "dlms", "cosem", "axdr", "esphome", "smartmeter" ],
+  "description": "A lightweight, standalone C++ library for parsing DLMS/COSEM AXDR payloads and MBus/HDLC frames, designed for embedded environments like ESPHome. ",
+  "keywords": [
+    "dlms",
+    "cosem",
+    "axdr",
+    "mbus",
+    "hdlc",
+    "esphome",
+    "smartmeter"
+  ],
   "repository": {
     "type": "git",
     "url": "https://github.com/esphome-libs/dlms_parser"
   },
+  "authors": [
+    {
+      "name": "Anton Viktorov",
+      "email": "anton.viktorov@live.com",
+      "url": "https://github.com/latonita",
+      "maintainer": true
+    }
+  ],
   "license": "Apache-2.0",
   "export": {
     "include": [

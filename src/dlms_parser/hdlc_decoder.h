@@ -17,9 +17,12 @@ namespace dlms_parser {
 // - FCS: CRC16/IBM-SDLC over frame[1..before_FCS]
 class HdlcDecoder {
  public:
+  void set_skip_crc_check(bool skip) { skip_crc_check_ = skip; }
   bool decode(const uint8_t* frame, size_t len, std::vector<uint8_t>& apdu_out) const;
 
  private:
+  bool skip_crc_check_{false};
+
   // Decode a single 7E-delimited frame; appends payload bytes to chunk_out.
   // is_first controls LLC header stripping (only on the first frame).
   bool decode_one_(const uint8_t* frame, size_t len, bool is_first,

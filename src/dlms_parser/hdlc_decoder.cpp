@@ -141,7 +141,7 @@ bool HdlcDecoder::decode_one_(const uint8_t* frame, size_t len,
     Logger::log(LogLevel::WARNING, "HDLC: frame too short for HCS");
     return false;
   }
-  if (crc16_x25_check_(b, pos + 2) != FCS16_GOOD_VALUE) {
+  if (!skip_crc_check_ && crc16_x25_check_(b, pos + 2) != FCS16_GOOD_VALUE) {
     Logger::log(LogLevel::WARNING, "HDLC: HCS error");
     return false;
   }
@@ -152,7 +152,7 @@ bool HdlcDecoder::decode_one_(const uint8_t* frame, size_t len,
     Logger::log(LogLevel::WARNING, "HDLC: frame too short for FCS");
     return false;
   }
-  if (crc16_x25_check_(b, blen) != FCS16_GOOD_VALUE) {
+  if (!skip_crc_check_ && crc16_x25_check_(b, blen) != FCS16_GOOD_VALUE) {
     Logger::log(LogLevel::WARNING, "HDLC: FCS error");
     return false;
   }
