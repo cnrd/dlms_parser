@@ -8,6 +8,37 @@ static constexpr uint8_t HDLC_FLAG       = 0x7E;
 // static constexpr uint8_t HDLC_ESCAPE_XOR = 0x20;
 static constexpr uint8_t HDLC_SEG_BIT   = 0x08;  // bit 3 of frame-type byte: "more frames follow"
 
+// ---------------------------------------------------------------------------
+// check() — stateless frame completeness check
+// Walks frame boundaries using length fields. Returns COMPLETE when the last
+// frame in the buffer has no segmentation bit set and no more data follows.
+// ---------------------------------------------------------------------------
+FrameStatus HdlcDecoder::check(const uint8_t* buf, size_t len) {
+  if (len < 2 || buf[0] != HDLC_FLAG) return FrameStatus::ERROR;
+
+  size_t offset = 0;
+  while (offset < len) {
+    if (buf[offset] != HDLC_FLAG) return FrameStatus::ERROR;
+    if (offset + 3 > len) return FrameStatus::NEED_MORE;  // can't read format field yet
+
+    const bool segmented = (buf[offset + 1] & HDLC_SEG_BIT) != 0;
+    const size_t frame_len = (static_cast<size_t>(buf[offset + 1] & 0x07U) << 8) | buf[offset + 2];
+    const size_t frame_total = frame_len + 2;
+
+    if (offset + frame_total > len) return FrameStatus::NEED_MORE;  // frame incomplete
+
+    // Verify closing flag
+    if (buf[offset + frame_total - 1] != HDLC_FLAG) return FrameStatus::ERROR;
+
+    offset += frame_total;
+
+    if (!segmented && offset >= len) return FrameStatus::COMPLETE;
+    // Not segmented but more data follows — continue (GBT multi-frame case)
+  }
+
+  return FrameStatus::NEED_MORE;
+}
+
 // After running crc16_x25_check_ over a data region AND then over the two stored CRC
 // bytes, the result must equal this constant (from RFC 1662 / hdlcpp).
 static constexpr uint16_t FCS16_GOOD_VALUE = 0xF0B8U;

@@ -9,6 +9,39 @@ static constexpr size_t  MBUS_INTRO  = 4;  // 0x68, L, L, 0x68
 static constexpr size_t  MBUS_HEADER = 9;  // intro(4) + C(1) + A(1) + CI(1) + STSAP(1) + DTSAP(1)
 static constexpr size_t  MBUS_FOOTER = 2;  // CS(1) + 0x16(1)
 
+// ---------------------------------------------------------------------------
+// check() — stateless frame completeness check
+// Walks M-Bus frame boundaries. Multiple frames are expected when CI byte
+// indicates continuation (0x11 for second+ frames). Returns COMPLETE when
+// the last frame's CI is not a continuation indicator.
+// ---------------------------------------------------------------------------
+FrameStatus MBusDecoder::check(const uint8_t* buf, size_t len) {
+  if (len < MBUS_INTRO || buf[0] != MBUS_START) return FrameStatus::ERROR;
+
+  size_t offset = 0;
+  while (offset < len) {
+    if (offset + MBUS_INTRO > len) return FrameStatus::NEED_MORE;
+    if (buf[offset] != MBUS_START || buf[offset + 3] != MBUS_START) return FrameStatus::ERROR;
+    if (buf[offset + 1] != buf[offset + 2]) return FrameStatus::ERROR;
+
+    const size_t L = buf[offset + 1];
+    const size_t frame_size = MBUS_INTRO + L + MBUS_FOOTER;
+    if (offset + frame_size > len) return FrameStatus::NEED_MORE;
+
+    // Check stop byte
+    if (buf[offset + MBUS_INTRO + L + 1] != MBUS_STOP) return FrameStatus::ERROR;
+
+    offset += frame_size;
+
+    // If next byte is another MBUS_START, more frames follow
+    if (offset < len && buf[offset] == MBUS_START) continue;
+
+    return FrameStatus::COMPLETE;
+  }
+
+  return FrameStatus::NEED_MORE;
+}
+
 bool MBusDecoder::decode(const uint8_t* frame, size_t len, std::vector<uint8_t>& apdu_out) const {
   apdu_out.clear();
   size_t offset = 0;

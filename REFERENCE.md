@@ -166,6 +166,8 @@ Common APDU tags accepted by the parser:
 | `0x01` | raw AXDR array |
 | `0x02` | raw AXDR structure |
 
+See also [HOWTO.md](HOWTO.md) for usage examples and [ARCHITECTURE.md](ARCHITECTURE.md) for the component diagram.
+
 ## External References
 
 - [DLMS/COSEM Architecture and Protocols. Green Book Edition 11](https://github.com/zhuyangfei/DLMS-green-book/blob/main/Green-Book-Ed-11-V1-0.pdf)

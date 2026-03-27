@@ -1,5 +1,6 @@
 #pragma once
 
+#include "types.h"
 #include <cstdint>
 #include <vector>
 
@@ -22,6 +23,10 @@ namespace dlms_parser {
 class MBusDecoder {
  public:
   void set_skip_crc_check(bool skip) { skip_crc_check_ = skip; }
+
+  // Check if buf contains a complete M-Bus message ready for decode().
+  static FrameStatus check(const uint8_t* buf, size_t len);
+
   bool decode(const uint8_t* frame, size_t len, std::vector<uint8_t>& apdu_out) const;
 
  private:

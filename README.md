@@ -64,6 +64,7 @@ parser.set_decryption_key(key);
 
 - [HOWTO.md](HOWTO.md): practical guide, examples, troubleshooting
 - [REFERENCE.md](REFERENCE.md): public API, pattern DSL, protocol/reference notes
+- [ARCHITECTURE.md](ARCHITECTURE.md): component diagram and module responsibilities
 
 ## Build And Test
 

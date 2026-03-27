@@ -320,3 +320,4 @@ Examples of meter-specific customization from the test suite:
 | object captured with OBIS `0.0.0.0.0.0` | pattern has no `TO`/`O` token — use `default_obis` overload |
 
 For exact callback signatures, token definitions, and public API details, see [REFERENCE.md](REFERENCE.md).
+For the component diagram and module responsibilities, see [ARCHITECTURE.md](ARCHITECTURE.md).

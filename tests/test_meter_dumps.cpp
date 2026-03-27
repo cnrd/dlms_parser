@@ -71,7 +71,7 @@ void run_meter_test(const char* name,
     }
   };
 
-  size_t objects_found = parser.parse(payload, payload_size, callback);
+  auto [objects_found, bytes_consumed] = parser.parse(payload, payload_size, callback);
   INFO("--- Parser Execution Logs ---\n" << log_messages);
   dlms_parser::Logger::set_log_function([](dlms_parser::LogLevel, const char*, va_list){});
 
@@ -197,7 +197,7 @@ TEST_CASE("Integration: HDLC") {
   SUBCASE("Landis+Gyr ZMF100 — CRC check rejects bad FCS") {
     dlms_parser::DlmsParser parser;
     parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
-    size_t n = parser.parse(
+    auto [n, consumed] = parser.parse(
       dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,
       sizeof(dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame),
       [](const char*, float, const char*, bool) {});

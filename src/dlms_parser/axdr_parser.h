@@ -13,6 +13,11 @@ namespace dlms_parser {
 // Callback delivering raw captured data before any conversion.
 using DlmsRawCallback = std::function<void(const AxdrCaptures&, const AxdrDescriptorPattern&)>;
 
+struct ParseResult {
+  size_t count{0};         // number of matched COSEM objects
+  size_t bytes_consumed{0}; // how many bytes of the input buffer were processed
+};
+
 // Recursive AXDR parser with DSL-based pattern matching.
 // Input must start with a DLMS type byte (STRUCTURE 0x02 or ARRAY 0x01).
 // No knowledge of APDU framing or encryption.
@@ -27,10 +32,10 @@ class AxdrParser {
   void clear_patterns();
 
   // Parse AXDR bytes. Fires cooked_cb and/or raw_cb for each pattern match.
-  // Either callback may be nullptr. Returns count of matched objects.
-  size_t parse(const uint8_t* axdr, size_t len,
-               DlmsDataCallback cooked_cb,
-               DlmsRawCallback raw_cb = nullptr);
+  // Either callback may be nullptr.
+  ParseResult parse(const uint8_t* axdr, size_t len,
+                    DlmsDataCallback cooked_cb,
+                    DlmsRawCallback raw_cb = nullptr);
 
   const std::vector<AxdrDescriptorPattern>& patterns() const { return patterns_; }
 

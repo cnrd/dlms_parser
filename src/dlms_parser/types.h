@@ -5,6 +5,14 @@
 
 namespace dlms_parser {
 
+// Result of check_frame() — tells the caller whether the buffer contains
+// a complete message or more data needs to be read.
+enum class FrameStatus : uint8_t {
+  COMPLETE,    // buffer contains a complete message — call parse()
+  NEED_MORE,   // more frames/data needed — keep reading and call check_frame() again
+  ERROR        // invalid or unrecognizable data — discard and resync
+};
+
 enum DlmsDataType : uint8_t {
   DLMS_DATA_TYPE_NONE = 0,
   DLMS_DATA_TYPE_ARRAY = 1,

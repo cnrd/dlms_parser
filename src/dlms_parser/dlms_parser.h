@@ -35,11 +35,15 @@ class DlmsParser final : NonCopyableAndNonMovable {
   void register_pattern(const std::string& name, const std::string& dsl, int priority,
                         const uint8_t default_obis[6]);
 
+  // Check whether buf contains a complete message ready for parse().
+  // Stateless — the library does not accumulate; the caller owns the buffer.
+  FrameStatus check_frame(const uint8_t* buf, size_t len) const;
+
   // Parse a full frame. Fires cooked_cb for each matched COSEM object.
   // Optionally fires raw_cb with unmodified captures before conversion.
-  size_t parse(const uint8_t* buf, size_t len,
-               DlmsDataCallback cooked_cb,
-               DlmsRawCallback raw_cb = nullptr);
+  ParseResult parse(const uint8_t* buf, size_t len,
+                    DlmsDataCallback cooked_cb,
+                    DlmsRawCallback raw_cb = nullptr);
 
  private:
   FrameFormat frame_format_{FrameFormat::RAW};

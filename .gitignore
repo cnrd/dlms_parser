@@ -4,3 +4,4 @@
 .idea/
 CMakeSettings.json
 launchSettings.json
+*.key

@@ -40,10 +40,10 @@ void AxdrParser::clear_patterns() {
 // Public parse entry point
 // ---------------------------------------------------------------------------
 
-size_t AxdrParser::parse(const uint8_t* axdr, size_t len,
-                         DlmsDataCallback cooked_cb,
-                         DlmsRawCallback raw_cb) {
-  if (axdr == nullptr || len == 0) return 0;
+ParseResult AxdrParser::parse(const uint8_t* axdr, size_t len,
+                              DlmsDataCallback cooked_cb,
+                              DlmsRawCallback raw_cb) {
+  if (axdr == nullptr || len == 0) return {};
 
   buffer_ = axdr;
   buffer_len_ = len;
@@ -55,18 +55,22 @@ size_t AxdrParser::parse(const uint8_t* axdr, size_t len,
 
   Logger::log(LogLevel::DEBUG, "AxdrParser: parsing %zu bytes", len);
 
-  const uint8_t start_type = this->read_byte_();
-  if (start_type != DLMS_DATA_TYPE_STRUCTURE && start_type != DLMS_DATA_TYPE_ARRAY) {
-    Logger::log(LogLevel::WARNING, "Expected STRUCTURE (0x02) or ARRAY (0x01), got 0x%02X", start_type);
-    return 0;
+  while (this->pos_ < this->buffer_len_) {
+    const uint8_t type = this->read_byte_();
+    if (type != DLMS_DATA_TYPE_STRUCTURE && type != DLMS_DATA_TYPE_ARRAY) {
+      Logger::log(LogLevel::VERBOSE, "Non-container type 0x%02X at pos %zu — stopping", type, this->pos_ - 1);
+      this->pos_--;  // put it back — not consumed
+      break;
+    }
+    if (!this->parse_element_(type, 0)) {
+      Logger::log(LogLevel::VERBOSE, "Parsing stopped at pos %zu", this->pos_);
+      break;
+    }
   }
 
-  if (!this->parse_element_(start_type, 0)) {
-    Logger::log(LogLevel::VERBOSE, "Parsing finished with errors or unexpected end of buffer");
-  }
-
-  Logger::log(LogLevel::DEBUG, "AxdrParser: done, %zu objects found", objects_found_);
-  return objects_found_;
+  Logger::log(LogLevel::DEBUG, "AxdrParser: done, %zu objects found, %zu/%zu bytes consumed",
+              objects_found_, pos_, buffer_len_);
+  return {objects_found_, pos_};
 }
 
 // ---------------------------------------------------------------------------
