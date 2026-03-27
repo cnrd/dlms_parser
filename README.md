@@ -42,12 +42,14 @@ parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
 parser.set_decryption_key(key);
 ```
 
-## Supported Inputs
+## Key Capabilities
 
-- `RAW`: buffer already starts with a supported APDU tag or raw AXDR container
-- `HDLC`: framed DLMS telegrams, including segmented frames
-- `MBUS`: wired M-Bus wrapped DLMS telegrams
-- Encrypted APDUs: `General-GLO-Ciphering` and `General-DED-Ciphering`
+- **Transport decoding**: `RAW`, `HDLC` (including multi-frame segmentation and General Block Transfer), `M-Bus`
+- **Encryption**: AES-128-GCM decryption for `General-GLO-Ciphering` and `General-DED-Ciphering` APDUs
+- **Pattern matching**: DSL-based AXDR descriptor patterns with built-in presets and custom registration
+- **Callback API**: cooked callback delivers OBIS code + scaled value; raw callback gives full capture details
+- **Embedded-friendly**: no heap allocation in the hot path; stack-only per-frame parsing
+- **Portable**: builds on ESP32 (IDF/Arduino), ESP8266, Linux, macOS, Windows
 
 ## Typical Usage Flow
 
@@ -74,6 +76,13 @@ cmake -S . -B build
 cmake --build build
 ctest --test-dir build
 ```
+
+## References
+
+This library builds on work from:
+
+- [esphome-dlms-cosem](https://github.com/latonita/esphome-dlms-cosem) -- original ESPHome DLMS/COSEM component and AXDR parser
+- [xt211](https://github.com/Tomer27cz/xt211) -- Sagemcom XT211 parser, instrumental in de-Guruxing the protocol handling
 
 ## License
 
