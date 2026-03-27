@@ -39,6 +39,8 @@
       "library.json",
       "LICENSE",
       "README.md",
+      "HOWTO.md",
+      "REFERENCE.md",
       "src/*"
     ]
   }
