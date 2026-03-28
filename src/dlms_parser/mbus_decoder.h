@@ -27,10 +27,8 @@ class MBusDecoder {
   // Check if buf contains a complete M-Bus message ready for decode().
   static FrameStatus check(const uint8_t* buf, size_t len);
 
-  bool decode(const uint8_t* frame, size_t len, std::vector<uint8_t>& apdu_out) const;
-
   // In-place decode: transforms buf contents, returns new length. 0 = error.
-  size_t decode_in_place(uint8_t* buf, size_t len) const;
+  size_t decode(uint8_t* buf, size_t len) const;
 
  private:
   bool skip_crc_check_{false};

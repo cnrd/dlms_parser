@@ -77,11 +77,11 @@ ParseResult DlmsParser::parse(const uint8_t* buf, size_t len,
   // Step 1: Frame decode (HDLC / MBus / RAW pass-through)
   switch (this->frame_format_) {
     case FrameFormat::HDLC:
-      work_len = this->hdlc_decoder_.decode_in_place(this->work_buf_, work_len);
+      work_len = this->hdlc_decoder_.decode(this->work_buf_, work_len);
       if (work_len == 0) return {};
       break;
     case FrameFormat::MBUS:
-      work_len = this->mbus_decoder_.decode_in_place(this->work_buf_, work_len);
+      work_len = this->mbus_decoder_.decode(this->work_buf_, work_len);
       if (work_len == 0) return {};
       break;
     case FrameFormat::RAW:

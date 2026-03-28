@@ -59,18 +59,11 @@ class HdlcDecoder {
   // Check if buf contains a complete HDLC message ready for decode().
   static FrameStatus check(const uint8_t* buf, size_t len);
 
-  bool decode(const uint8_t* frame, size_t len, std::vector<uint8_t>& apdu_out) const;
-
   // In-place decode: transforms buf contents, returns new length. 0 = error.
-  size_t decode_in_place(uint8_t* buf, size_t len) const;
+  size_t decode(uint8_t* buf, size_t len) const;
 
  private:
   bool skip_crc_check_{false};
-
-  // Decode a single 7E-delimited frame; appends payload bytes to chunk_out.
-  // is_first controls LLC header stripping (only on the first frame).
-  bool decode_one_(const uint8_t* frame, size_t len, bool is_first,
-                   std::vector<uint8_t>& chunk_out) const;
 
   // Returns the number of bytes in a variable-length HDLC address field (1, 2 or 4).
   // Returns 0 if the terminating LSB=1 bit is not found within 4 bytes.
