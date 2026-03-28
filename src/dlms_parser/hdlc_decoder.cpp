@@ -1,5 +1,6 @@
 #include "hdlc_decoder.h"
 #include "log.h"
+#include <cstring>
 
 namespace dlms_parser {
 
@@ -235,6 +236,100 @@ uint16_t HdlcDecoder::crc16_x25_check_(const uint8_t* data, size_t len) {
   // Return raw register value (no xor-out) for "good value" verification:
   // when CRC is run over (data + stored_FCS), the raw register equals FCS16_GOOD_VALUE.
   return crc;
+}
+
+// ---------------------------------------------------------------------------
+// In-place decode: extracts and concatenates payloads from all HDLC frames
+// in buf, writing them sequentially to buf[0..]. Returns new length, 0 on error.
+// ---------------------------------------------------------------------------
+size_t HdlcDecoder::decode_in_place(uint8_t* buf, size_t len) const {
+  size_t read_offset = 0;
+  size_t write_offset = 0;
+  bool is_first = true;
+
+  do {
+    if (read_offset + 4 > len || buf[read_offset] != HDLC_FLAG) {
+      Logger::log(LogLevel::WARNING, "HDLC: invalid frame at offset %zu", read_offset);
+      return 0;
+    }
+
+    const bool segmented = (buf[read_offset + 1] & HDLC_SEG_BIT) != 0;
+    const size_t frame_len = (static_cast<size_t>(buf[read_offset + 1] & 0x07U) << 8) | buf[read_offset + 2];
+    const size_t frame_total = frame_len + 2;
+
+    if (read_offset + frame_total > len) {
+      Logger::log(LogLevel::WARNING, "HDLC: incomplete frame at offset %zu", read_offset);
+      return 0;
+    }
+
+    // Content between the two 7E flags
+    const uint8_t* b = buf + read_offset + 1;
+    const size_t blen = frame_total - 2;
+
+    if (blen < 9) { // minimum: format(2) + dst(1) + src(1) + ctrl(1) + hcs(2) + fcs(2)
+      Logger::log(LogLevel::WARNING, "HDLC: frame too short (%zu bytes)", blen);
+      return 0;
+    }
+
+    // Length field validation
+    const size_t declared_len = (static_cast<size_t>(b[0] & 0x07U) << 8) | b[1];
+    if (declared_len != blen) {
+      Logger::log(LogLevel::WARNING, "HDLC: length mismatch (field=%zu, actual=%zu)", declared_len, blen);
+      return 0;
+    }
+
+    // Skip addresses + control
+    size_t pos = 2;
+    const size_t dst_len = address_length_(b + pos, blen - pos);
+    if (dst_len == 0) return 0;
+    pos += dst_len;
+
+    const size_t src_len = address_length_(b + pos, blen - pos);
+    if (src_len == 0) return 0;
+    pos += src_len;
+    pos += 1;  // control byte
+
+    // HCS
+    if (pos + 2 > blen) return 0;
+    if (!this->skip_crc_check_ && crc16_x25_check_(b, pos + 2) != FCS16_GOOD_VALUE) {
+      Logger::log(LogLevel::WARNING, "HDLC: HCS error");
+      return 0;
+    }
+    pos += 2;
+
+    // FCS
+    if (blen < 3) return 0;
+    if (!this->skip_crc_check_ && crc16_x25_check_(b, blen) != FCS16_GOOD_VALUE) {
+      Logger::log(LogLevel::WARNING, "HDLC: FCS error");
+      return 0;
+    }
+
+    const size_t data_end = blen - 2;
+
+    // Strip LLC on first frame
+    if (is_first && pos + 3 <= data_end &&
+        b[pos] == 0xE6 && (b[pos + 1] == 0xE7 || b[pos + 1] == 0xE6) && b[pos + 2] == 0x00) {
+      pos += 3;
+    }
+
+    // Copy payload to write position (memmove safe: dst <= src always)
+    const size_t payload_len = (pos < data_end) ? data_end - pos : 0;
+    if (payload_len > 0) {
+      std::memmove(buf + write_offset, b + pos, payload_len);
+      write_offset += payload_len;
+    }
+
+    read_offset += frame_total;
+    is_first = false;
+
+    if (!segmented && read_offset >= len) break;
+  } while (read_offset < len);
+
+  if (write_offset == 0) {
+    Logger::log(LogLevel::WARNING, "HDLC: no payload extracted");
+    return 0;
+  }
+  return write_offset;
 }
 
 }  // namespace dlms_parser

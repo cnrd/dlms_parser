@@ -20,8 +20,9 @@ class DlmsParser final : NonCopyableAndNonMovable {
  public:
   DlmsParser();
 
-  void set_frame_format(FrameFormat fmt) { frame_format_ = fmt; }
+  void set_frame_format(FrameFormat fmt) { this->frame_format_ = fmt; }
   void set_skip_crc_check(bool skip);
+  void set_work_buffer(uint8_t* buf, size_t capacity);
   void set_decryption_key(const std::array<uint8_t, 16>& key);
   void set_decryption_key(const std::vector<uint8_t>& key);
 
@@ -47,6 +48,8 @@ class DlmsParser final : NonCopyableAndNonMovable {
 
  private:
   FrameFormat frame_format_{FrameFormat::RAW};
+  uint8_t* work_buf_{nullptr};
+  size_t work_buf_capacity_{0};
   GcmDecryptor decryptor_;
   ApduHandler apdu_handler_;
   AxdrParser axdr_parser_;

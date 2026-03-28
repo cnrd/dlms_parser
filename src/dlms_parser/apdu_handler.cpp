@@ -175,4 +175,164 @@ bool ApduHandler::parse_general_block_transfer_(const uint8_t* buf, size_t len,
   return parse(reassembled.data(), reassembled.size(), cb);
 }
 
+// ---------------------------------------------------------------------------
+// In-place unwrap: sequential pipeline replacing recursive parse().
+// Scans for known APDU tag, transforms in-place, loops until AXDR is exposed.
+// ---------------------------------------------------------------------------
+ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len) const {
+  constexpr int MAX_ITERATIONS = 4;  // GBT → cipher → DATA-NOTIFICATION → AXDR
+
+  for (int iter = 0; iter < MAX_ITERATIONS; iter++) {
+    // Scan for first known tag
+    size_t tag_pos = 0;
+    bool found = false;
+    for (size_t i = 0; i < len; i++) {
+      const uint8_t tag = buf[i];
+      if (tag == DLMS_APDU_GENERAL_BLOCK_TRANSFER ||
+          tag == DLMS_APDU_DATA_NOTIFICATION ||
+          tag == DLMS_APDU_GENERAL_GLO_CIPHERING ||
+          tag == DLMS_APDU_GENERAL_DED_CIPHERING ||
+          tag == DLMS_DATA_TYPE_ARRAY ||
+          tag == DLMS_DATA_TYPE_STRUCTURE) {
+        tag_pos = i;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      Logger::log(LogLevel::WARNING, "No supported APDU tag found in buffer");
+      return {0, 0};
+    }
+
+    // Shift to tag position if needed
+    if (tag_pos > 0) {
+      len -= tag_pos;
+      std::memmove(buf, buf + tag_pos, len);
+    }
+
+    const uint8_t tag = buf[0];
+
+    // --- Raw AXDR (0x01/0x02): done
+    if (tag == DLMS_DATA_TYPE_ARRAY || tag == DLMS_DATA_TYPE_STRUCTURE) {
+      Logger::log(LogLevel::DEBUG, "Found raw AXDR %s (0x%02X) — no APDU wrapper",
+                  tag == DLMS_DATA_TYPE_ARRAY ? "ARRAY" : "STRUCTURE", tag);
+      return {0, len};
+    }
+
+    // --- DATA-NOTIFICATION (0x0F): strip header, return AXDR
+    if (tag == DLMS_APDU_DATA_NOTIFICATION) {
+      Logger::log(LogLevel::DEBUG, "Found DATA-NOTIFICATION (0x0F)");
+      size_t pos = 1;
+      if (pos + 4 > len) return {0, 0};
+      pos += 4;  // Long-Invoke-ID
+
+      if (pos >= len) return {0, 0};
+      const uint8_t has_datetime = buf[pos++];
+      if (has_datetime != 0x00) {
+        Logger::log(LogLevel::VERBOSE, "Datetime flag 0x%02X — skipping 12-byte datetime", has_datetime);
+        if (pos + 12 > len) return {0, 0};
+        pos += 12;
+      }
+
+      if (pos >= len) return {0, 0};
+      return {pos, len - pos};
+    }
+
+    // --- General-Block-Transfer (0xE0): reassemble blocks in-place
+    if (tag == DLMS_APDU_GENERAL_BLOCK_TRANSFER) {
+      Logger::log(LogLevel::DEBUG, "Found General-Block-Transfer (0xE0)");
+      size_t read_pos = 0;
+      size_t write_pos = 0;
+
+      while (read_pos < len && buf[read_pos] == DLMS_APDU_GENERAL_BLOCK_TRANSFER) {
+        if (read_pos + 7 > len) {
+          Logger::log(LogLevel::WARNING, "GBT: truncated block header");
+          return {0, 0};
+        }
+        const uint8_t ctrl = buf[read_pos + 1];
+        const bool is_last = (ctrl & 0x80U) != 0;
+        const uint8_t block_len = buf[read_pos + 6];
+
+        if (read_pos + 7 + block_len > len) {
+          Logger::log(LogLevel::WARNING, "GBT: block truncated");
+          return {0, 0};
+        }
+
+        std::memmove(buf + write_pos, buf + read_pos + 7, block_len);
+        write_pos += block_len;
+        read_pos += 7 + block_len;
+
+        if (is_last) break;
+      }
+
+      if (write_pos == 0) {
+        Logger::log(LogLevel::WARNING, "GBT: no payload after reassembly");
+        return {0, 0};
+      }
+      Logger::log(LogLevel::DEBUG, "GBT: reassembled %zu bytes", write_pos);
+      len = write_pos;
+      continue;  // re-enter loop to process reassembled content
+    }
+
+    // --- Ciphered APDU (0xDB/0xDF): decrypt in-place
+    if (tag == DLMS_APDU_GENERAL_GLO_CIPHERING || tag == DLMS_APDU_GENERAL_DED_CIPHERING) {
+      Logger::log(LogLevel::DEBUG, "Found ciphered APDU (0x%02X)", tag);
+
+      if (!this->decryptor_ || !this->decryptor_->has_key()) {
+        Logger::log(LogLevel::WARNING, "Encrypted APDU received but no decryption key is set");
+        return {0, 0};
+      }
+
+      size_t pos = 1;
+      // System title
+      if (pos >= len) return {0, 0};
+      const uint8_t st_len = buf[pos++];
+      if (pos + st_len > len || st_len != DLMS_SYSTITLE_LENGTH) return {0, 0};
+      // Build IV: systitle(8) + frame_counter(4) — copy to stack before buf is modified
+      uint8_t iv[DLMS_IV_LENGTH];
+      std::memcpy(iv, buf + pos, st_len);
+      pos += st_len;
+
+      // BER length
+      if (pos >= len) return {0, 0};
+      const uint8_t len_byte = buf[pos++];
+      uint32_t cipher_len = len_byte;
+      if (len_byte > DLMS_LENGTH_SINGLE_BYTE_MAX) {
+        const uint8_t num_bytes = len_byte & 0x7F;
+        cipher_len = 0;
+        for (uint8_t i = 0; i < num_bytes; i++) {
+          if (pos >= len) return {0, 0};
+          cipher_len = (cipher_len << 8) | buf[pos++];
+        }
+      }
+
+      // Security control byte (skip)
+      if (pos >= len) return {0, 0};
+      pos++;
+
+      // Frame counter → last 4 bytes of IV
+      if (pos + DLMS_FRAME_COUNTER_LENGTH > len) return {0, 0};
+      std::memcpy(iv + DLMS_SYSTITLE_LENGTH, buf + pos, DLMS_FRAME_COUNTER_LENGTH);
+      pos += DLMS_FRAME_COUNTER_LENGTH;
+
+      if (cipher_len < DLMS_LENGTH_CORRECTION) return {0, 0};
+      const uint32_t payload_len = cipher_len - DLMS_LENGTH_CORRECTION;
+      if (pos + payload_len > len) return {0, 0};
+
+      // Decrypt: read from buf+pos, write to buf+0
+      const size_t plain_len = this->decryptor_->decrypt_in_place(iv, buf, pos, payload_len);
+      if (plain_len == 0) {
+        Logger::log(LogLevel::ERROR, "Decryption failed");
+        return {0, 0};
+      }
+      Logger::log(LogLevel::DEBUG, "Decrypted %zu bytes", plain_len);
+      len = plain_len;
+      continue;  // re-enter loop to process decrypted content
+    }
+  }
+
+  Logger::log(LogLevel::WARNING, "APDU unwrap: exceeded max iterations");
+  return {0, 0};
+}
+
 }  // namespace dlms_parser

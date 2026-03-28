@@ -56,7 +56,9 @@ void run_meter_test(const char* name,
     fprintf(stderr, "%s%s\n", level_str, buffer.data());
   });
 
+  std::array<uint8_t, 2048> work_buf{};
   dlms_parser::DlmsParser parser;
+  parser.set_work_buffer(work_buf.data(), work_buf.size());
   parser.load_default_patterns();
   parser.set_frame_format(format);
   if (setup_fn) setup_fn(parser);
@@ -196,7 +198,9 @@ TEST_CASE("Integration: HDLC") {
   }
 
   SUBCASE("Landis+Gyr ZMF100 — CRC check rejects bad FCS") {
+    std::array<uint8_t, 2048> work_buf{};
     dlms_parser::DlmsParser parser;
+    parser.set_work_buffer(work_buf.data(), work_buf.size());
     parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
     auto [n, consumed] = parser.parse(
       dlms::test_data::hdlc_landis_gyr_zmf100_raw_frame,

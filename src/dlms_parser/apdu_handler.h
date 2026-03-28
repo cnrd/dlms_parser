@@ -24,6 +24,12 @@ class ApduHandler {
   // Fires cb exactly once on success with the raw AXDR payload span.
   bool parse(const uint8_t* buf, size_t len, AxdrPayloadCallback cb) const;
 
+  // In-place unwrap: transforms buf in a loop (GBT→decrypt→strip header).
+  // Returns the offset and length of the AXDR payload within buf.
+  // Returns {0, 0} on error.
+  struct UnwrapResult { size_t offset; size_t length; };
+  UnwrapResult unwrap_in_place(uint8_t* buf, size_t len) const;
+
  private:
   bool parse_data_notification_(const uint8_t* buf, size_t len, AxdrPayloadCallback cb) const;
   bool parse_ciphered_apdu_(const uint8_t* buf, size_t len, uint8_t tag, AxdrPayloadCallback cb) const;

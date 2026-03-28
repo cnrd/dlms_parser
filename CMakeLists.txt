@@ -62,10 +62,10 @@ if(NOT MINGW) # The default MinGW toolchain that comes with Clion on Windows doe
   target_link_libraries(dlms_parser_test PRIVATE dlms_parser_test_sanitizers)
 endif()
 
-# parse_frame — CLI tool for parsing meter dump files
+# decode_readout — CLI tool for parsing meter dump files
 file(GLOB_RECURSE dlms_parser_lib_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp")
-add_executable(parse_frame tools/parse_frame.cpp ${dlms_parser_lib_files})
-target_include_directories(parse_frame PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} src)
-target_compile_features(parse_frame PRIVATE cxx_std_20)
-target_link_libraries(parse_frame PRIVATE mbedtls bearssl)
-target_include_directories(parse_frame SYSTEM PUBLIC $<TARGET_PROPERTY:mbedtls,INTERFACE_INCLUDE_DIRECTORIES>)
+add_executable(decode_readout tools/decode_readout.cpp ${dlms_parser_lib_files})
+target_include_directories(decode_readout PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} src)
+target_compile_features(decode_readout PRIVATE cxx_std_20)
+target_link_libraries(decode_readout PRIVATE mbedtls bearssl)
+target_include_directories(decode_readout SYSTEM PUBLIC $<TARGET_PROPERTY:mbedtls,INTERFACE_INCLUDE_DIRECTORIES>)

@@ -1,5 +1,6 @@
 #include "mbus_decoder.h"
 #include "log.h"
+#include <cstring>
 
 namespace dlms_parser {
 
@@ -107,6 +108,67 @@ bool MBusDecoder::decode(const uint8_t* frame, size_t len, std::vector<uint8_t>&
   }
 
   return true;
+}
+
+// ---------------------------------------------------------------------------
+// In-place decode: extracts and concatenates payloads from all M-Bus frames,
+// writing them sequentially to buf[0..]. Returns new length, 0 on error.
+// ---------------------------------------------------------------------------
+size_t MBusDecoder::decode_in_place(uint8_t* buf, size_t len) const {
+  size_t read_offset = 0;
+  size_t write_offset = 0;
+
+  while (read_offset < len) {
+    if (len - read_offset < MBUS_INTRO) {
+      Logger::log(LogLevel::WARNING, "MBUS: too short for header (%zu remaining)", len - read_offset);
+      return 0;
+    }
+    if (buf[read_offset] != MBUS_START || buf[read_offset + 3] != MBUS_START) {
+      Logger::log(LogLevel::WARNING, "MBUS: invalid start bytes at offset %zu", read_offset);
+      return 0;
+    }
+    if (buf[read_offset + 1] != buf[read_offset + 2]) {
+      Logger::log(LogLevel::WARNING, "MBUS: length mismatch at offset %zu", read_offset);
+      return 0;
+    }
+
+    const size_t L = buf[read_offset + 1];
+    const size_t frame_size = MBUS_INTRO + L + MBUS_FOOTER;
+
+    if (len - read_offset < frame_size) {
+      Logger::log(LogLevel::WARNING, "MBUS: incomplete frame at offset %zu", read_offset);
+      return 0;
+    }
+    if (buf[read_offset + MBUS_INTRO + L + 1] != MBUS_STOP) {
+      Logger::log(LogLevel::WARNING, "MBUS: invalid stop byte at offset %zu", read_offset);
+      return 0;
+    }
+
+    // Checksum
+    if (!this->skip_crc_check_) {
+      uint8_t cs = 0;
+      for (size_t i = 0; i < L; ++i) cs += buf[read_offset + MBUS_INTRO + i];
+      if (cs != buf[read_offset + MBUS_INTRO + L]) {
+        Logger::log(LogLevel::WARNING, "MBUS: checksum error at offset %zu", read_offset);
+        return 0;
+      }
+    }
+
+    // Payload: bytes after C, A, CI, STSAP, DTSAP
+    if (MBUS_HEADER < MBUS_INTRO + L) {
+      const size_t payload_len = MBUS_INTRO + L - MBUS_HEADER;
+      std::memmove(buf + write_offset, buf + read_offset + MBUS_HEADER, payload_len);
+      write_offset += payload_len;
+    }
+
+    read_offset += frame_size;
+  }
+
+  if (write_offset == 0) {
+    Logger::log(LogLevel::WARNING, "MBUS: no payload in frame(s)");
+    return 0;
+  }
+  return write_offset;
 }
 
 }  // namespace dlms_parser

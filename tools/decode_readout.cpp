@@ -1,11 +1,11 @@
-// parse_frame — standalone CLI tool demonstrating dlms_parser usage.
+// decode_readout — standalone CLI tool demonstrating dlms_parser usage.
 //
 // Build (from repo root):
 //   cmake -S . -B build && cmake --build build
-//   # binary: build/parse_frame
+//   # binary: build/decode_readout
 //
 // Usage:
-//   ./parse_frame [options] <file>
+//   ./decode_readout [options] <file>
 //
 // Options:
 //   -f hdlc|mbus|raw    Frame format (default: auto-detect)
@@ -17,9 +17,9 @@
 //   -vv                 Very verbose logging (all levels)
 //
 // Examples:
-//   ./parse_frame tests/dumps/hdlc_norway_han_1phase.log
-//   ./parse_frame -f mbus -k 36C66639E48A8CA4D6BC8B282A793BBB tests/dumps/mbus_netz_noe_p1.log
-//   ./parse_frame -p "TO, TV" -p "L, TSTR" tests/dumps/hdlc_landis_gyr_e450.log
+//   ./decode_readout tests/dumps/hdlc_norway_han_1phase.log
+//   ./decode_readout -f mbus -k 36C66639E48A8CA4D6BC8B282A793BBB tests/dumps/mbus_netz_noe_p1.log
+//   ./decode_readout -p "TO, TV" -p "L, TSTR" tests/dumps/hdlc_landis_gyr_e450.log
 
 #include <cstdarg>
 #include <cstdio>
@@ -267,6 +267,10 @@ int main(int argc, char* argv[]) {
     fmt = detect_format(data);
   }
   parser.set_frame_format(fmt);
+
+  // Work buffer — sized to input data (always sufficient)
+  std::vector<uint8_t> work_buf(data.size());
+  parser.set_work_buffer(work_buf.data(), work_buf.size());
 
   if (skip_crc) {
     parser.set_skip_crc_check(true);
