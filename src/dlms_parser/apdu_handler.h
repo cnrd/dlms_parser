@@ -12,17 +12,18 @@ using AxdrPayloadCallback = std::function<void(const uint8_t* axdr, size_t len)>
 
 // Scans a buffer byte-by-byte for the first recognized DLMS APDU tag.
 // Unknown leading bytes are skipped. Recognized tags:
-//   0xE0  General-Block-Transfer   : reassembles numbered blocks, then recurses
+//   0xE0  General-Block-Transfer   : reassembles numbered blocks
 //   0x0F  DATA-NOTIFICATION        : strips Long-Invoke-ID and optional datetime header
-//   0xDB  General-Glo-Ciphering    : decrypts with GcmDecryptor, then recurses
-//   0xDF  General-Ded-Ciphering    : decrypts with GcmDecryptor, then recurses
+//   0xDB  General-Glo-Ciphering    : decrypts with GcmDecryptor
+//   0xDF  General-Ded-Ciphering    : decrypts with GcmDecryptor
 //   0x01 / 0x02  raw ARRAY/STRUCT  : no APDU wrapper (e.g. HDLC/Aidon)
 class ApduHandler {
  public:
   void set_decryptor(GcmDecryptor* d) { decryptor_ = d; }
 
   // Fires cb exactly once on success with the raw AXDR payload span.
-  bool parse(const uint8_t* buf, size_t len, AxdrPayloadCallback cb) const;
+  // Requires a mutable buffer for in-place decryption and reassembly.
+  bool parse(uint8_t* buf, size_t len, AxdrPayloadCallback cb) const;
 
   // In-place unwrap: transforms buf in a loop (GBT→decrypt→strip header).
   // Returns the offset and length of the AXDR payload within buf.
@@ -31,10 +32,6 @@ class ApduHandler {
   UnwrapResult unwrap_in_place(uint8_t* buf, size_t len) const;
 
  private:
-  bool parse_data_notification_(const uint8_t* buf, size_t len, AxdrPayloadCallback cb) const;
-  bool parse_ciphered_apdu_(const uint8_t* buf, size_t len, uint8_t tag, AxdrPayloadCallback cb) const;
-  bool parse_general_block_transfer_(const uint8_t* buf, size_t len, AxdrPayloadCallback cb) const;
-
   GcmDecryptor* decryptor_{nullptr};
 };
 

@@ -17,11 +17,6 @@ class GcmDecryptor {
 
   bool has_key() const { return has_key_; }
 
-  // Decrypts AES-128-GCM ciphertext. iv must be exactly 12 bytes.
-  // On success, plain_out is filled with cipher_len decrypted bytes and true is returned.
-  bool decrypt(const uint8_t* iv, const uint8_t* cipher, size_t cipher_len,
-               std::vector<uint8_t>& plain_out) const;
-
   // In-place decrypt: reads ciphertext from buf[cipher_offset..], writes plaintext to buf[0..].
   // Returns plaintext length, or 0 on failure. iv must be exactly 12 bytes.
   size_t decrypt_in_place(const uint8_t* iv, uint8_t* buf, size_t cipher_offset, size_t cipher_len) const;
