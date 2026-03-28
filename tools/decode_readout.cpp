@@ -310,13 +310,13 @@ int main(int argc, char* argv[]) {
   fprintf(stdout, "Status:  %s\n\n", status_str);
 
   if (status == dlms_parser::FrameStatus::NEED_MORE) {
-    fprintf(stderr, "Frame incomplete — more data needed. In a real application,\n"
+    fprintf(stderr, "Frame incomplete - more data needed. In a real application,\n"
                     "keep reading from UART and call check_frame() again with\n"
                     "the accumulated buffer.\n");
     return 2;
   }
   if (status == dlms_parser::FrameStatus::ERROR) {
-    fprintf(stderr, "Frame error — invalid data. Discard and resync.\n");
+    fprintf(stderr, "Frame error - invalid data. Discard and resync.\n");
     return 3;
   }
 

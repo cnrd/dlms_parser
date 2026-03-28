@@ -24,7 +24,7 @@ bool ApduHandler::parse(const uint8_t* buf, size_t len, AxdrPayloadCallback cb) 
       return parse_ciphered_apdu_(rest, rest_len, tag, cb);
     }
     if (tag == DLMS_DATA_TYPE_ARRAY || tag == DLMS_DATA_TYPE_STRUCTURE) {
-      Logger::log(LogLevel::DEBUG, "Found raw AXDR %s (0x%02X) at offset %zu — no APDU wrapper",
+      Logger::log(LogLevel::DEBUG, "Found raw AXDR %s (0x%02X) at offset %zu - no APDU wrapper",
                   tag == DLMS_DATA_TYPE_ARRAY ? "ARRAY" : "STRUCTURE", tag, pos);
       cb(buf + pos, len - pos);
       return true;
@@ -50,7 +50,7 @@ bool ApduHandler::parse_data_notification_(const uint8_t* buf, size_t len,
   // Date-Time presence flag (1 byte): 0x00 = absent, anything else = 12-byte datetime follows
   const uint8_t has_datetime = buf[pos++];
   if (has_datetime != 0x00) {
-    Logger::log(LogLevel::VERBOSE, "Datetime flag 0x%02X — skipping 12-byte datetime", has_datetime);
+    Logger::log(LogLevel::VERBOSE, "Datetime flag 0x%02X - skipping 12-byte datetime", has_datetime);
     if (pos + 12 > len) {
       Logger::log(LogLevel::WARNING, "Buffer too short to skip datetime object");
       return false;
@@ -207,7 +207,7 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
 
     // --- Raw AXDR (0x01/0x02): done
     if (tag == DLMS_DATA_TYPE_ARRAY || tag == DLMS_DATA_TYPE_STRUCTURE) {
-      Logger::log(LogLevel::DEBUG, "Found raw AXDR %s (0x%02X) — no APDU wrapper",
+      Logger::log(LogLevel::DEBUG, "Found raw AXDR %s (0x%02X) - no APDU wrapper",
                   tag == DLMS_DATA_TYPE_ARRAY ? "ARRAY" : "STRUCTURE", tag);
       return {0, len};
     }
@@ -222,7 +222,7 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
       if (pos >= len) return {0, 0};
       const uint8_t has_datetime = buf[pos++];
       if (has_datetime != 0x00) {
-        Logger::log(LogLevel::VERBOSE, "Datetime flag 0x%02X — skipping 12-byte datetime", has_datetime);
+        Logger::log(LogLevel::VERBOSE, "Datetime flag 0x%02X - skipping 12-byte datetime", has_datetime);
         if (pos + 12 > len) return {0, 0};
         pos += 12;
       }

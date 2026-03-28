@@ -592,9 +592,9 @@ def decode_apdu(apdu: bytes, key: Optional[bytes] = None) -> tuple[list[str], Op
                 lines.append(f"Decryption: FAILED (wrong key or corrupted)")
         else:
             if HAS_CRYPTO:
-                lines.append(f"No key provided — place key in .key file or use -k flag")
+                lines.append(f"No key provided - place key in .key file or use -k flag")
             else:
-                lines.append(f"No 'cryptography' package — pip install cryptography")
+                lines.append(f"No 'cryptography' package - pip install cryptography")
         return lines, None
 
     elif tag in (0x01, 0x02):

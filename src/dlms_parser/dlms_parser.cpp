@@ -62,7 +62,7 @@ ParseResult DlmsParser::parse(const uint8_t* buf, size_t len,
                               DlmsDataCallback cooked_cb,
                               DlmsRawCallback raw_cb) {
   if (!this->work_buf_) {
-    Logger::log(LogLevel::ERROR, "No work buffer set — call set_work_buffer() before parse()");
+    Logger::log(LogLevel::ERROR, "No work buffer set - call set_work_buffer() before parse()");
     return {};
   }
   if (len > this->work_buf_capacity_) {

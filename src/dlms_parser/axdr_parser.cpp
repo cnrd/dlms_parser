@@ -52,7 +52,7 @@ ParseResult AxdrParser::parse(const uint8_t* axdr, size_t len,
   while (this->pos_ < this->buffer_len_) {
     const uint8_t type = this->read_byte_();
     if (type != DLMS_DATA_TYPE_STRUCTURE && type != DLMS_DATA_TYPE_ARRAY) {
-      Logger::log(LogLevel::VERBOSE, "Non-container type 0x%02X at pos %zu — stopping", type, this->pos_ - 1);
+      Logger::log(LogLevel::VERBOSE, "Non-container type 0x%02X at pos %zu - stopping", type, this->pos_ - 1);
       this->pos_--;  // put it back — not consumed
       break;
     }
@@ -409,7 +409,7 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
   }
 
   const uint16_t cid = effective.class_id ? effective.class_id : pat.default_class_id;
-  Logger::log(LogLevel::DEBUG, "Pattern '%s' matched at pos %u — class_id=%d obis=%s",
+  Logger::log(LogLevel::DEBUG, "Pattern '%s' matched at pos %u - class_id=%d obis=%s",
               pat.name.c_str(), effective.elem_idx, cid, obis_str_buf);
 
   if (effective.has_scaler_unit) {
