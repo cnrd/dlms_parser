@@ -1,6 +1,6 @@
 #pragma once
 
-#include "gcm_decryptor.h"
+#include "decryption/aes_128_gcm_decryptor.h"
 #include "types.h"
 #include <cstdint>
 #include <functional>
@@ -19,7 +19,7 @@ using AxdrPayloadCallback = std::function<void(const uint8_t* axdr, size_t len)>
 //   0x01 / 0x02  raw ARRAY/STRUCT  : no APDU wrapper (e.g. HDLC/Aidon)
 class ApduHandler {
  public:
-  void set_decryptor(GcmDecryptor* d) { decryptor_ = d; }
+  void set_decryptor(Aes128GcmDecryptor* d) { decryptor_ = d; }
 
   // Fires cb exactly once on success with the raw AXDR payload span.
   // Requires a mutable buffer for in-place decryption and reassembly.
@@ -32,7 +32,7 @@ class ApduHandler {
   UnwrapResult unwrap_in_place(uint8_t* buf, size_t len) const;
 
  private:
-  GcmDecryptor* decryptor_{nullptr};
+  Aes128GcmDecryptor* decryptor_{nullptr};
 };
 
 }  // namespace dlms_parser

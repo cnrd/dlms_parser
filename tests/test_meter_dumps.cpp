@@ -9,6 +9,7 @@
 
 #include "dlms_parser/dlms_parser.h"
 #include "dlms_parser/log.h"
+#include "dlms_parser/decryption/aes_128_gcm_decryptor_mbedtls.h"
 
 #include "tests/expected/raw_sagemcom_xt211.h"
 #include "tests/expected/raw_energomera.h"
@@ -58,7 +59,8 @@ void run_meter_test(const char* name,
   });
 
   std::array<uint8_t, 2048> work_buf{};
-  dlms_parser::DlmsParser parser;
+  dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+  dlms_parser::DlmsParser parser(decryptor);
   parser.set_work_buffer(work_buf.data(), work_buf.size());
   parser.load_default_patterns();
   parser.set_frame_format(format);
@@ -79,7 +81,7 @@ void run_meter_test(const char* name,
   INFO("--- Parser Execution Logs ---\n" << log_messages);
   dlms_parser::Logger::set_log_function([](dlms_parser::LogLevel, const char*, va_list){});
 
-  CHECK(objects_found == expected_count);
+  REQUIRE(objects_found == expected_count);
 
   for (const auto& expected : expected_strings) {
     INFO("Checking string OBIS code: ", expected.first);
@@ -210,7 +212,8 @@ TEST_CASE("Integration: HDLC") {
 
   SUBCASE("Landis+Gyr ZMF100 - CRC check rejects bad FCS") {
     std::array<uint8_t, 2048> work_buf{};
-    dlms_parser::DlmsParser parser;
+    dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+    dlms_parser::DlmsParser parser(decryptor);
     parser.set_work_buffer(work_buf.data(), work_buf.size());
     parser.set_frame_format(dlms_parser::FrameFormat::HDLC);
     auto [n, consumed] = parser.parse(

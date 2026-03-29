@@ -25,11 +25,14 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
 
 #include "dlms_parser/dlms_parser.h"
 #include "dlms_parser/log.h"
+#include "dlms_parser/decryption/aes_128_gcm_decryptor_mbedtls.h"
 
 // ---------------------------------------------------------------------------
 // Hex file reader — supports spaced hex, concatenated hex, line continuations
@@ -39,16 +42,15 @@ static bool is_hex_char(char c) {
 }
 
 static std::vector<uint8_t> read_hex_file(const char* path) {
-  FILE* f = fopen(path, "r");
+  std::ifstream f(path);
   if (!f) {
     fprintf(stderr, "Error: cannot open '%s'\n", path);
     return {};
   }
 
-  std::string raw;
-  char buf[4096];
-  while (fgets(buf, sizeof(buf), f)) raw += buf;
-  fclose(f);
+  std::ostringstream ss;
+  ss << f.rdbuf();
+  std::string raw = ss.str();
 
   // Remove dash-newline line continuations before parsing
   std::string text;
@@ -85,19 +87,17 @@ static std::vector<uint8_t> read_hex_file(const char* path) {
 // Binary file reader
 // ---------------------------------------------------------------------------
 static std::vector<uint8_t> read_bin_file(const char* path) {
-  FILE* f = fopen(path, "rb");
+  std::ifstream f(path, std::ios::binary | std::ios::ate);
   if (!f) {
     fprintf(stderr, "Error: cannot open '%s'\n", path);
     return {};
   }
-  fseek(f, 0, SEEK_END);
-  long size = ftell(f);
-  fseek(f, 0, SEEK_SET);
+  std::streamsize size = f.tellg();
+  f.seekg(0, std::ios::beg);
   std::vector<uint8_t> result(static_cast<size_t>(size));
-  if (fread(result.data(), 1, static_cast<size_t>(size), f) != static_cast<size_t>(size)) {
+  if (!f.read(reinterpret_cast<char*>(result.data()), size)) {
     result.clear();
   }
-  fclose(f);
   return result;
 }
 
@@ -105,11 +105,11 @@ static std::vector<uint8_t> read_bin_file(const char* path) {
 // Auto-detect file type: if all bytes are hex chars/spaces/newlines, treat as hex
 // ---------------------------------------------------------------------------
 static bool looks_like_hex_file(const char* path) {
-  FILE* f = fopen(path, "r");
+  std::ifstream f(path);
   if (!f) return false;
   char buf[256];
-  size_t n = fread(buf, 1, sizeof(buf) - 1, f);
-  fclose(f);
+  f.read(buf, sizeof(buf) - 1);
+  size_t n = static_cast<size_t>(f.gcount());
   buf[n] = '\0';
   for (size_t i = 0; i < n; i++) {
     char c = buf[i];
@@ -251,7 +251,8 @@ int main(int argc, char* argv[]) {
   }
 
   // ---- Configure parser ----
-  dlms_parser::DlmsParser parser;
+  dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+  dlms_parser::DlmsParser parser(decryptor);
 
   // Frame format
   dlms_parser::FrameFormat fmt;

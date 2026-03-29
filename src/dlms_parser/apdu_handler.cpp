@@ -152,14 +152,14 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
       const uint32_t payload_len = cipher_len - DLMS_LENGTH_CORRECTION;
       if (pos + payload_len > len) return {0, 0};
 
-      // Decrypt: read from buf+pos, write to buf+0
-      const size_t plain_len = this->decryptor_->decrypt_in_place(iv, buf, pos, payload_len);
-      if (plain_len == 0) {
+      // Decrypt: read from buf+pos, and move to buf+0
+      if (!this->decryptor_->decrypt_in_place(iv, std::span(buf + pos, payload_len))) {
         Logger::log(LogLevel::ERROR, "Decryption failed");
         return {0, 0};
       }
-      Logger::log(LogLevel::DEBUG, "Decrypted %zu bytes", plain_len);
-      len = plain_len;
+      std::memmove(buf, buf + pos, payload_len);
+      Logger::log(LogLevel::DEBUG, "Decrypted %u bytes", payload_len);
+      len = payload_len;
       continue;  // re-enter loop to process decrypted content
     }
   }

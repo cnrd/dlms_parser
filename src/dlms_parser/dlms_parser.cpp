@@ -4,7 +4,7 @@
 
 namespace dlms_parser {
 
-DlmsParser::DlmsParser() {
+DlmsParser::DlmsParser(Aes128GcmDecryptor& decryptor) : decryptor_(decryptor) {
   apdu_handler_.set_decryptor(&decryptor_);
 }
 
@@ -30,12 +30,8 @@ void DlmsParser::set_work_buffer(uint8_t* buf, size_t capacity) {
   this->work_buf_capacity_ = capacity;
 }
 
-void DlmsParser::set_decryption_key(const std::array<uint8_t, 16>& key) {
-  decryptor_.set_key(key);
-}
-
-void DlmsParser::set_decryption_key(const std::vector<uint8_t>& key) {
-  decryptor_.set_key(key);
+void DlmsParser::set_decryption_key(const std::span<const uint8_t> key) {
+  decryptor_.set_decryption_key(key);
 }
 
 void DlmsParser::load_default_patterns() {

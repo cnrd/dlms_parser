@@ -34,6 +34,11 @@ file(GLOB_RECURSE bearssl_sources CONFIGURE_DEPENDS "${bearsll_SOURCE_DIR}/src/*
 add_library(bearssl STATIC ${bearssl_sources})
 target_include_directories(bearssl SYSTEM PUBLIC "${bearsll_SOURCE_DIR}/inc" PRIVATE "${bearsll_SOURCE_DIR}/src")
 
+# Combine mbedtls and bearssl into a single "crypto" target to simplify linking
+add_library(dlms_cryptography INTERFACE)
+target_link_libraries(dlms_cryptography INTERFACE mbedtls bearssl)
+target_include_directories(dlms_cryptography SYSTEM INTERFACE $<TARGET_PROPERTY:mbedtls,INTERFACE_INCLUDE_DIRECTORIES>) # disable warnings for mbedtls headers
+
 # cmake_template for warnings and sanitizers
 FetchContent_Populate(
   cmake_template
@@ -42,30 +47,31 @@ FetchContent_Populate(
 include(${cmake_template_SOURCE_DIR}/cmake/CompilerWarnings.cmake)
 include(${cmake_template_SOURCE_DIR}/cmake/Sanitizers.cmake)
 
-# dlms_parser_test
-file(GLOB_RECURSE dlms_parser_test_src_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp" "tests/*.h" "tests/*.cpp")
-add_executable(dlms_parser_test ${dlms_parser_test_src_files})
-target_include_directories(dlms_parser_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} src ${CMAKE_BINARY_DIR}/doctest)
-target_compile_features(dlms_parser_test PRIVATE cxx_std_20)
-target_link_libraries(dlms_parser_test PRIVATE mbedtls bearssl)
-target_include_directories(dlms_parser_test SYSTEM PUBLIC $<TARGET_PROPERTY:mbedtls,INTERFACE_INCLUDE_DIRECTORIES>) # disable warnings for mbedtls headers
+# dlms_parser library
+file(GLOB_RECURSE dlms_parser_src_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp")
+add_library(dlms_parser ${dlms_parser_src_files})
+target_include_directories(dlms_parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} src)
+target_compile_features(dlms_parser PUBLIC cxx_std_20)
 
 # enable warnings
-add_library(dlms_parser_test_warnings INTERFACE)
-myproject_set_project_warnings(dlms_parser_test_warnings ON "" "" "" "")
-target_link_libraries(dlms_parser_test PRIVATE dlms_parser_test_warnings)
+add_library(dlms_parser_warnings INTERFACE)
+myproject_set_project_warnings(dlms_parser_warnings ON "" "" "" "")
+target_link_libraries(dlms_parser PUBLIC dlms_parser_warnings)
 
-# enable sanitizers: address, leak, undefined behaviour
 if(NOT MINGW) # The default MinGW toolchain that comes with Clion on Windows doesn't support sanitizers
-  add_library(dlms_parser_test_sanitizers INTERFACE)
-  myproject_enable_sanitizers(dlms_parser_test_sanitizers ON ON ON OFF OFF)
-  target_link_libraries(dlms_parser_test PRIVATE dlms_parser_test_sanitizers)
+  add_library(dlms_parser_sanitizers INTERFACE)
+  myproject_enable_sanitizers(dlms_parser_sanitizers ON ON ON OFF OFF)
+  target_link_libraries(dlms_parser PUBLIC dlms_parser_sanitizers)
 endif()
 
-# decode_readout — CLI tool for parsing meter dump files
-file(GLOB_RECURSE dlms_parser_lib_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp")
-add_executable(decode_readout tools/decode_readout.cpp ${dlms_parser_lib_files})
-target_include_directories(decode_readout PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} src)
-target_compile_features(decode_readout PRIVATE cxx_std_20)
-target_link_libraries(decode_readout PRIVATE mbedtls bearssl)
-target_include_directories(decode_readout SYSTEM PUBLIC $<TARGET_PROPERTY:mbedtls,INTERFACE_INCLUDE_DIRECTORIES>)
+# dlms_parser_test
+file(GLOB_RECURSE dlms_parser_test_src_files CONFIGURE_DEPENDS "tests/*.h" "tests/*.cpp")
+add_executable(dlms_parser_test ${dlms_parser_test_src_files})
+target_link_libraries(dlms_parser_test PRIVATE dlms_parser dlms_cryptography)
+target_include_directories(dlms_parser_test PRIVATE ${CMAKE_BINARY_DIR}/doctest)
+enable_testing()
+add_test(NAME dlms_parser_test COMMAND dlms_parser_test)
+
+# decode_readout
+add_executable(decode_readout tools/decode_readout.cpp)
+target_link_libraries(decode_readout PRIVATE dlms_parser dlms_cryptography)
