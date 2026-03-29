@@ -1,8 +1,6 @@
 #pragma once
 
-#include <array>
 #include <cstdint>
-#include <vector>
 #include <span>
 
 namespace dlms_parser {

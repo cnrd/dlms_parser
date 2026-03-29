@@ -1,7 +1,6 @@
 #pragma once
 
 #include "decryption/aes_128_gcm_decryptor.h"
-#include "types.h"
 #include <cstdint>
 #include <functional>
 

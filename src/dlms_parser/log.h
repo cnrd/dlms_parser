@@ -3,7 +3,6 @@
 #include <cstdarg>
 #include <cstdio>
 #include <functional>
-#include "utils.h"
 
 namespace dlms_parser {
 
