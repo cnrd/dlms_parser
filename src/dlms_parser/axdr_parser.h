@@ -6,7 +6,7 @@
 #include <cstdint>
 #include <functional>
 #include <string>
-#include <vector>
+#include <array>
 
 namespace dlms_parser {
 
@@ -37,11 +37,15 @@ class AxdrParser {
                     DlmsDataCallback cooked_cb,
                     DlmsRawCallback raw_cb = nullptr);
 
-  const std::vector<AxdrDescriptorPattern>& patterns() const { return patterns_; }
+  [[nodiscard]] const AxdrDescriptorPattern* patterns() const { return patterns_.data(); }
+  [[nodiscard]] size_t patterns_size() const { return patterns_count_; }
 
  private:
+  static constexpr size_t MAX_PATTERNS = 32;
+
   // Pattern registry
-  std::vector<AxdrDescriptorPattern> patterns_;
+  std::array<AxdrDescriptorPattern, MAX_PATTERNS> patterns_;
+  size_t patterns_count_{0};
   AxdrDescriptorPattern& register_pattern_dsl_(const std::string& name, const std::string& dsl, int priority);
 
   // Parse-time state — reset at the start of each parse() call

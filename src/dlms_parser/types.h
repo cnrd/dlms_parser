@@ -73,6 +73,7 @@ enum class AxdrTokenType : uint8_t {
   EXPECT_UNIT_ENUM_TAGGED,
   GOING_DOWN,
   GOING_UP,
+  END_OF_PATTERN = 0xFF
 };
 
 struct AxdrCaptures {

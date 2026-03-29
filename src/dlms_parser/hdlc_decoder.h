@@ -2,7 +2,6 @@
 
 #include "types.h"
 #include <cstdint>
-#include <vector>
 
 namespace dlms_parser {
 

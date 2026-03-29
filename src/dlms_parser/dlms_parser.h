@@ -5,10 +5,8 @@
 #include "hdlc_decoder.h"
 #include "mbus_decoder.h"
 #include "utils.h"
-#include <array>
 #include <cstdint>
 #include <string>
-#include <vector>
 
 namespace dlms_parser {
 
