@@ -56,8 +56,14 @@ target_compile_features(dlms_parser PUBLIC cxx_std_20)
 # enable warnings
 add_library(dlms_parser_warnings INTERFACE)
 myproject_set_project_warnings(dlms_parser_warnings ON "" "" "" "")
+if(NOT MSVC)
+  # We use `vsnprintf(buffer.data(), buffer.size(), fmt, args);` inside logging function.
+  # Thus this warning is a false positive.
+  target_compile_options(dlms_parser_warnings INTERFACE -Wno-format-nonliteral)
+endif()
 target_link_libraries(dlms_parser PUBLIC dlms_parser_warnings)
 
+# enable sanitizers
 if(NOT MINGW) # The default MinGW toolchain that comes with Clion on Windows doesn't support sanitizers
   add_library(dlms_parser_sanitizers INTERFACE)
   myproject_enable_sanitizers(dlms_parser_sanitizers ON ON ON OFF OFF)

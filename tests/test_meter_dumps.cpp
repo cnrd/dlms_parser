@@ -34,14 +34,7 @@ void run_meter_test(const char* name,
   std::cout << std::format("\n========== {} ==========\n", name);
   dlms_parser::Logger::set_log_function([](const dlms_parser::LogLevel log_level, const char* fmt, va_list args) {
     std::array<char, 2000> buffer;
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wformat-nonliteral"
-#endif
     vsnprintf(buffer.data(), buffer.size(), fmt, args);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
 
     const char* level_str;
     switch(log_level) {
