@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <map>
 #include <string>
+#include "dlms_parser/decryption/aes_128_gcm_decryptor.h"
 
 namespace dlms::test_data {
 
@@ -41,10 +42,10 @@ const uint8_t hdlc_landis_gyr_e450_raw_frame[] = {
 };
 
 // AES-GCM decryption key (GUEK)
-const uint8_t hdlc_landis_gyr_e450_key[16] = {
+const auto hdlc_landis_gyr_e450_key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(std::array<uint8_t, 16>{
     0x5C, 0x31, 0x61, 0x62, 0x20, 0x9E, 0xBB, 0x79,
     0x0B, 0x52, 0xEB, 0x0E, 0x7F, 0xC5, 0xB1, 0x1C,
-};
+}).value();
 
 // 16 flat TO,TV pairs (no scaler/unit)
 constexpr size_t hdlc_landis_gyr_e450_expected_count = 16;

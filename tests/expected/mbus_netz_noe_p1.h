@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <map>
 #include <string>
+#include "dlms_parser/decryption/aes_128_gcm_decryptor.h"
 
 namespace dlms::test_data {
 
@@ -35,10 +36,10 @@ const uint8_t mbus_netz_noe_p1_raw_frame[] = {
 };
 
 // AES-GCM decryption key
-const uint8_t mbus_netz_noe_p1_key[16] = {
+const auto mbus_netz_noe_p1_key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(std::array<uint8_t, 16>{
     0x36, 0xC6, 0x66, 0x39, 0xE4, 0x8A, 0x8C, 0xA4,
     0xD6, 0xBC, 0x8B, 0x28, 0x2A, 0x79, 0x3B, 0xBB,
-};
+}).value();
 
 // 11 T2 objects + 1 meter number (L, TSTR) = 12 total
 constexpr size_t mbus_netz_noe_p1_expected_count = 12;

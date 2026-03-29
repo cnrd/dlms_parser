@@ -19,7 +19,7 @@ class DlmsParser final : NonCopyableAndNonMovable {
   void set_frame_format(const FrameFormat fmt) { this->frame_format_ = fmt; }
   void set_skip_crc_check(bool skip);
   void set_work_buffer(uint8_t* buf, size_t capacity);
-  void set_decryption_key(std::span<const uint8_t> key) const;
+  void set_decryption_key(const Aes128GcmDecryptionKey& key) const;
 
   // Load built-in patterns (T1, T2, T3, U.ZPA).
   void load_default_patterns();

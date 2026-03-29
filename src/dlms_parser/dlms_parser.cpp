@@ -30,7 +30,7 @@ void DlmsParser::set_work_buffer(uint8_t* buf, const size_t capacity) {
   this->work_buf_capacity_ = capacity;
 }
 
-void DlmsParser::set_decryption_key(const std::span<const uint8_t> key) const {
+void DlmsParser::set_decryption_key(const Aes128GcmDecryptionKey& key) const {
   decryptor_.set_decryption_key(key);
 }
 

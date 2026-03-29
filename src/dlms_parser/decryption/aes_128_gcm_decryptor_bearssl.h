@@ -5,15 +5,15 @@
 
 namespace dlms_parser {
 
-class Aes128GcmDecryptorBearSsl : public Aes128GcmDecryptor {
+class Aes128GcmDecryptorBearSsl : public Aes128GcmDecryptor, NonCopyableAndNonMovable {
   br_gcm_context gcm{};
   br_aes_ct_ctr_keys aes{};
 
  public:
   Aes128GcmDecryptorBearSsl() = default;
   
-  void set_decryption_key(const std::span<const uint8_t> key_bytes) override {
-    br_aes_ct_ctr_init(&aes, key_bytes.data(), 16);
+  void set_decryption_key(const Aes128GcmDecryptionKey& key) override {
+    br_aes_ct_ctr_init(&aes, key.data(), 16);
     br_gcm_init(&gcm, &aes.vtable, br_ghash_ctmul32);
     _has_key = true;
   }

@@ -281,12 +281,13 @@ int main(int argc, char* argv[]) {
 
   // Decryption key
   if (key_str) {
-    auto key = parse_hex_key(key_str);
-    if (key.size() != 16) {
+    auto key_bytes = parse_hex_key(key_str);
+    auto key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(key_bytes);
+    if (!key) {
       std::cerr << "Error: key must be exactly 32 hex characters\n";
       return 1;
     }
-    parser.set_decryption_key(key);
+    parser.set_decryption_key(*key);
   }
 
   // Patterns

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <map>
 #include <string>
+#include "dlms_parser/decryption/aes_128_gcm_decryptor.h"
 
 namespace dlms::test_data {
 
@@ -40,10 +41,10 @@ const uint8_t hdlc_lgz_e450_2_raw_frame[] = {
 };
 
 // AES-GCM decryption key
-const uint8_t hdlc_lgz_e450_2_key[16] = {
+const auto hdlc_lgz_e450_2_key = dlms_parser::Aes128GcmDecryptionKey::from_bytes(std::array<uint8_t, 16>{
     0x5F, 0xDE, 0x26, 0xFE, 0x7A, 0x1A, 0x36, 0xB6,
     0xE1, 0xC0, 0xBA, 0x04, 0x8F, 0xA9, 0xA0, 0x23,
-};
+}).value();
 
 // 16 flat TO,TV pairs
 constexpr size_t hdlc_lgz_e450_2_expected_count = 16;
