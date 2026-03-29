@@ -168,13 +168,6 @@ std::array<uint8_t, 16> key = {0x00, 0x01, 0x02, /* ... */ 0x0F};
 parser.set_decryption_key(key);
 ```
 
-Or:
-
-```cpp
-std::vector<uint8_t> key_vec = { /* exactly 16 bytes */ };
-parser.set_decryption_key(key_vec);
-```
-
 If the frame is not encrypted, skip this step.
 
 ## Loading And Writing Patterns
@@ -243,6 +236,10 @@ Minimal example:
 
 dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
 dlms_parser::DlmsParser parser(decryptor);
+
+uint8_t work_buf[1024];
+parser.set_work_buffer(work_buf, sizeof(work_buf));
+
 parser.load_default_patterns();
 
 auto on_value = [](const char* obis_code, float float_val, const char* str_val, bool is_numeric) {
