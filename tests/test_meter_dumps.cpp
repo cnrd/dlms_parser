@@ -11,6 +11,7 @@
 #include "dlms_parser/dlms_parser.h"
 #include "dlms_parser/log.h"
 #include "dlms_parser/decryption/aes_128_gcm_decryptor_mbedtls.h"
+#include "dlms_parser/decryption/aes_128_gcm_decryptor_bearssl.h"
 
 #include "tests/expected/raw_sagemcom_xt211.h"
 #include "tests/expected/raw_energomera.h"
@@ -24,6 +25,7 @@
 #include "tests/expected/hdlc_lgz_e450_2.h"
 #include "tests/expected/mbus_netz_noe_p1.h"
 
+template<typename Aes128GcmDecryptor = dlms_parser::Aes128GcmDecryptorMbedTls>
 void run_meter_test(const char* name,
                     const uint8_t* payload, size_t payload_size,
                     size_t expected_count,
@@ -51,7 +53,7 @@ void run_meter_test(const char* name,
   });
 
   std::array<uint8_t, 2048> work_buf{};
-  dlms_parser::Aes128GcmDecryptorMbedTls decryptor;
+  Aes128GcmDecryptor decryptor;
   dlms_parser::DlmsParser parser(decryptor);
   parser.set_work_buffer(work_buf.data(), work_buf.size());
   parser.load_default_patterns();
@@ -213,8 +215,23 @@ TEST_CASE("Integration: HDLC") {
     CHECK(n == 0);
   }
 
-  SUBCASE("Landis+Gyr E450 (GBT + encrypted)") {
-    run_meter_test("Landis+Gyr E450 (GBT + encrypted)",
+  SUBCASE("Landis+Gyr E450 (GBT + encrypted). Use MbedTls") {
+    run_meter_test("Landis+Gyr E450 (GBT + encrypted). Use MbedTls",
+      dlms::test_data::hdlc_landis_gyr_e450_raw_frame,
+      sizeof(dlms::test_data::hdlc_landis_gyr_e450_raw_frame),
+      dlms::test_data::hdlc_landis_gyr_e450_expected_count,
+      dlms::test_data::hdlc_landis_gyr_e450_expected_strings,
+      dlms::test_data::hdlc_landis_gyr_e450_expected_floats,
+      dlms_parser::FrameFormat::HDLC,
+      [](dlms_parser::DlmsParser& p) {
+        p.set_decryption_key(dlms::test_data::hdlc_landis_gyr_e450_key);
+        p.register_pattern("TO, TV");
+      }
+    );
+  }
+
+  SUBCASE("Landis+Gyr E450 (GBT + encrypted). Use BearSsl") {
+    run_meter_test<dlms_parser::Aes128GcmDecryptorBearSsl>("Landis+Gyr E450 (GBT + encrypted). Use BearSsl",
       dlms::test_data::hdlc_landis_gyr_e450_raw_frame,
       sizeof(dlms::test_data::hdlc_landis_gyr_e450_raw_frame),
       dlms::test_data::hdlc_landis_gyr_e450_expected_count,
