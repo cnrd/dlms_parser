@@ -1,0 +1,375 @@
+Input: tests/dumps/raw_egd_example.log (430 bytes)
+
+=== Transport: RAW (no frame wrapper) ===
+
+=== APDU: raw AXDR (no wrapper) ===
+=== AXDR payload (430 bytes) ===
+01                                     <-- ARRAY
+  02                                   <-- 2 elements
+  --- element [1/2] ---
+  02                                     <-- STRUCTURE
+    16                                   <-- 22 elements
+    --- element [1/22] ---
+    01                                     <-- ARRAY
+      01                                   <-- 1 elements
+      --- element [1/1] ---
+      1B 02 02 00 01                             <-- TIME = 02 02 00 01
+    --- element [2/22] ---
+    00                                     <-- NULL
+    --- element [3/22] ---
+    00                                     <-- NULL
+    --- element [4/22] ---
+    2A                                     <-- UNKNOWN(0x2A)
+    --- element [5/22] ---
+    00                                     <-- NULL
+    --- element [6/22] ---
+    00                                     <-- NULL
+    --- element [7/22] ---
+    FF                                     <-- UNKNOWN(0xFF)
+    --- element [8/22] ---
+    02                                     <-- STRUCTURE
+      09                                   <-- 9 elements
+      --- element [1/9] ---
+      09                                     <-- OCTET_STRING
+        45                                   <-- length = 69
+        47 44 30 31 32 33 34 35 02 02 00 28 00 02 19 09 00 FF 01 09 06 00 02 19 09 00 FF 02 02 00 01 00
+      --- element [2/9] ---
+      11 00                                      <-- UINT8 = 0
+      --- element [3/9] ---
+      00                                     <-- NULL
+      --- element [4/9] ---
+      FF                                     <-- UNKNOWN(0xFF)
+      --- element [5/9] ---
+      03 06                                      <-- BOOLEAN = true
+      --- element [6/9] ---
+      00                                     <-- NULL
+      --- element [7/9] ---
+      00                                     <-- NULL
+      --- element [8/9] ---
+      00                                     <-- NULL
+      --- element [9/9] ---
+      00                                     <-- NULL
+    --- element [9/22] ---
+    02                                     <-- STRUCTURE
+      02                                   <-- 2 elements
+      --- element [1/2] ---
+      00                                     <-- NULL
+      --- element [2/2] ---
+      46                                     <-- UNKNOWN(0x46)
+    --- element [10/22] ---
+    00                                     <-- NULL
+    --- element [11/22] ---
+    01                                     <-- ARRAY
+      60                                   <-- 96 elements
+      --- element [1/96] ---
+      03 0A                                      <-- BOOLEAN = true
+      --- element [2/96] ---
+      FF                                     <-- UNKNOWN(0xFF)
+      --- element [3/96] ---
+      03 16                                      <-- BOOLEAN = true
+      --- element [4/96] ---
+      01                                     <-- ARRAY
+        02                                   <-- 2 elements
+        --- element [1/2] ---
+        02                                     <-- STRUCTURE
+          00                                   <-- 0 elements
+        --- element [2/2] ---
+        46                                     <-- UNKNOWN(0x46)
+      --- element [5/96] ---
+      00                                     <-- NULL
+      --- element [6/96] ---
+      02                                     <-- STRUCTURE
+        60                                   <-- 96 elements
+        --- element [1/96] ---
+        03 0A                                      <-- BOOLEAN = true
+        --- element [2/96] ---
+        FF                                     <-- UNKNOWN(0xFF)
+        --- element [3/96] ---
+        03 16                                      <-- BOOLEAN = true
+        --- element [4/96] ---
+        01                                     <-- ARRAY
+          02                                   <-- 2 elements
+          --- element [1/2] ---
+          02                                     <-- STRUCTURE
+            00                                   <-- 0 elements
+          --- element [2/2] ---
+          46                                     <-- UNKNOWN(0x46)
+        --- element [5/96] ---
+        00                                     <-- NULL
+        --- element [6/96] ---
+        03 60                                      <-- BOOLEAN = true
+        --- element [7/96] ---
+        03 0A                                      <-- BOOLEAN = true
+        --- element [8/96] ---
+        FF                                     <-- UNKNOWN(0xFF)
+        --- element [9/96] ---
+        03 16                                      <-- BOOLEAN = true
+        --- element [10/96] ---
+        00                                     <-- NULL
+        --- element [11/96] ---
+        02                                     <-- STRUCTURE
+          02                                   <-- 2 elements
+          --- element [1/2] ---
+          00                                     <-- NULL
+          --- element [2/2] ---
+          46                                     <-- UNKNOWN(0x46)
+        --- element [12/96] ---
+        00                                     <-- NULL
+        --- element [13/96] ---
+        04                                     <-- BIT_STRING
+          60                                   <-- length = 96
+          03 0A FF 03 16 00 02 02 00 46 00 05 60 03 0A FF 03 16 00 02 02 00 46 00 06 60 03 0A FF 03 16 00
+        --- element [14/96] ---
+        02                                     <-- STRUCTURE
+          00                                   <-- 0 elements
+        --- element [15/96] ---
+        03 01                                      <-- BOOLEAN = true
+        --- element [16/96] ---
+        00                                     <-- NULL
+        --- element [17/96] ---
+        3D                                     <-- UNKNOWN(0x3D)
+        --- element [18/96] ---
+        07                                     <-- UNKNOWN(0x07)
+        --- element [19/96] ---
+        00                                     <-- NULL
+        --- element [20/96] ---
+        FF                                     <-- UNKNOWN(0xFF)
+        --- element [21/96] ---
+        02                                     <-- STRUCTURE
+          06                                   <-- 6 elements
+          --- element [1/6] ---
+          00                                     <-- NULL
+          --- element [2/6] ---
+          00                                     <-- NULL
+          --- element [3/6] ---
+          00                                     <-- NULL
+          --- element [4/6] ---
+          01                                     <-- ARRAY
+            02                                   <-- 2 elements
+            --- element [1/2] ---
+            02                                     <-- STRUCTURE
+              00                                   <-- 0 elements
+            --- element [2/2] ---
+            03 01                                      <-- BOOLEAN = true
+          --- element [5/6] ---
+          00                                     <-- NULL
+          --- element [6/6] ---
+          02                                     <-- STRUCTURE
+            07                                   <-- 7 elements
+            --- element [1/7] ---
+            00                                     <-- NULL
+            --- element [2/7] ---
+            FF                                     <-- UNKNOWN(0xFF)
+            --- element [3/7] ---
+            02                                     <-- STRUCTURE
+              06                                   <-- 6 elements
+              --- element [1/6] ---
+              00                                     <-- NULL
+              --- element [2/6] ---
+              00                                     <-- NULL
+              --- element [3/6] ---
+              00                                     <-- NULL
+              --- element [4/6] ---
+              03 02                                      <-- BOOLEAN = true
+              --- element [5/6] ---
+              02                                     <-- STRUCTURE
+                00                                   <-- 0 elements
+              --- element [6/6] ---
+              03 01                                      <-- BOOLEAN = true
+            --- element [4/7] ---
+            00                                     <-- NULL
+            --- element [5/7] ---
+            16 07                                      <-- ENUM = 7 (s)
+            --- element [6/7] ---
+            00                                     <-- NULL
+            --- element [7/7] ---
+            FF                                     <-- UNKNOWN(0xFF)
+        --- element [22/96] ---
+        02                                     <-- STRUCTURE
+          06                                   <-- 6 elements
+          --- element [1/6] ---
+          00                                     <-- NULL
+          --- element [2/6] ---
+          00                                     <-- NULL
+          --- element [3/6] ---
+          00                                     <-- NULL
+          --- element [4/6] ---
+          01                                     <-- ARRAY
+            02                                   <-- 2 elements
+            --- element [1/2] ---
+            02                                     <-- STRUCTURE
+              00                                   <-- 0 elements
+            --- element [2/2] ---
+            03 01                                      <-- BOOLEAN = true
+          --- element [5/6] ---
+          00                                     <-- NULL
+          --- element [6/6] ---
+          2A                                     <-- UNKNOWN(0x2A)
+        --- element [23/96] ---
+        07                                     <-- UNKNOWN(0x07)
+        --- element [24/96] ---
+        00                                     <-- NULL
+        --- element [25/96] ---
+        FF                                     <-- UNKNOWN(0xFF)
+        --- element [26/96] ---
+        02                                     <-- STRUCTURE
+          06                                   <-- 6 elements
+          --- element [1/6] ---
+          00                                     <-- NULL
+          --- element [2/6] ---
+          00                                     <-- NULL
+          --- element [3/6] ---
+          00                                     <-- NULL
+          --- element [4/6] ---
+          01                                     <-- ARRAY
+            02                                   <-- 2 elements
+            --- element [1/2] ---
+            02                                     <-- STRUCTURE
+              00                                   <-- 0 elements
+            --- element [2/2] ---
+            03 01                                      <-- BOOLEAN = true
+          --- element [5/6] ---
+          00                                     <-- NULL
+          --- element [6/6] ---
+          3E                                     <-- UNKNOWN(0x3E)
+        --- element [27/96] ---
+        07                                     <-- UNKNOWN(0x07)
+        --- element [28/96] ---
+        00                                     <-- NULL
+        --- element [29/96] ---
+        FF                                     <-- UNKNOWN(0xFF)
+        --- element [30/96] ---
+        02                                     <-- STRUCTURE
+          06                                   <-- 6 elements
+          --- element [1/6] ---
+          00                                     <-- NULL
+          --- element [2/6] ---
+          00                                     <-- NULL
+          --- element [3/6] ---
+          00                                     <-- NULL
+          --- element [4/6] ---
+          01                                     <-- ARRAY
+            02                                   <-- 2 elements
+            --- element [1/2] ---
+            02                                     <-- STRUCTURE
+              00                                   <-- 0 elements
+            --- element [2/2] ---
+            03 01                                      <-- BOOLEAN = true
+          --- element [5/6] ---
+          00                                     <-- NULL
+          --- element [6/6] ---
+          01                                     <-- ARRAY
+            08                                   <-- 8 elements
+            --- element [1/8] ---
+            00                                     <-- NULL
+            --- element [2/8] ---
+            FF                                     <-- UNKNOWN(0xFF)
+            --- element [3/8] ---
+            02                                     <-- STRUCTURE
+              06                                   <-- 6 elements
+              --- element [1/6] ---
+              00                                     <-- NULL
+              --- element [2/6] ---
+              00                                     <-- NULL
+              --- element [3/6] ---
+              00                                     <-- NULL
+              --- element [4/6] ---
+              08                                     <-- UNKNOWN(0x08)
+              --- element [5/6] ---
+              02                                     <-- STRUCTURE
+                02                                   <-- 2 elements
+                --- element [1/2] ---
+                00                                     <-- NULL
+                --- element [2/2] ---
+                03 01                                      <-- BOOLEAN = true
+              --- element [6/6] ---
+              00                                     <-- NULL
+            --- element [4/8] ---
+            01                                     <-- ARRAY
+              08                                   <-- 8 elements
+              --- element [1/8] ---
+              01                                     <-- ARRAY
+                FF                                   <-- 255 elements
+                --- element [1/255] ---
+                02                                     <-- STRUCTURE
+                  06                                   <-- 6 elements
+                  --- element [1/6] ---
+                  00                                     <-- NULL
+                  --- element [2/6] ---
+                  00                                     <-- NULL
+                  --- element [3/6] ---
+                  00                                     <-- NULL
+                  --- element [4/6] ---
+                  00                                     <-- NULL
+                  --- element [5/6] ---
+                  02                                     <-- STRUCTURE
+                    02                                   <-- 2 elements
+                    --- element [1/2] ---
+                    00                                     <-- NULL
+                    --- element [2/2] ---
+                    03 01                                      <-- BOOLEAN = true
+                  --- element [6/6] ---
+                  00                                     <-- NULL
+                --- element [2/255] ---
+                01                                     <-- ARRAY
+                  08                                   <-- 8 elements
+                  --- element [1/8] ---
+                  02                                     <-- STRUCTURE
+                    FF                                   <-- 255 elements
+                    --- element [1/255] ---
+                    02                                     <-- STRUCTURE
+                      06                                   <-- 6 elements
+                      --- element [1/6] ---
+                      00                                     <-- NULL
+                      --- element [2/6] ---
+                      00                                     <-- NULL
+                      --- element [3/6] ---
+                      00                                     <-- NULL
+                      --- element [4/6] ---
+                      04                                     <-- BIT_STRING
+                        02                                   <-- length = 2
+                        02 00
+                      --- element [5/6] ---
+                      03 01                                      <-- BOOLEAN = true
+                      --- element [6/6] ---
+                      00                                     <-- NULL
+                    --- element [2/255] ---
+                    01                                     <-- ARRAY
+                      08                                   <-- 8 elements
+                      --- element [1/8] ---
+                      03 FF                                      <-- BOOLEAN = true
+                      --- element [2/8] ---
+                      02                                     <-- STRUCTURE
+                        06                                   <-- 6 elements
+                        --- element [1/6] ---
+                        00                                     <-- NULL
+                        --- element [2/6] ---
+                        00                                     <-- NULL
+                        --- element [3/6] ---
+                        00                                     <-- NULL
+                        --- element [4/6] ---
+                        04                                     <-- BIT_STRING
+                          02                                   <-- length = 2
+                          02 00
+                        --- element [5/6] ---
+                        03 01                                      <-- BOOLEAN = true
+                        --- element [6/6] ---
+                        00                                     <-- NULL
+                      --- element [3/8] ---
+                      01                                     <-- ARRAY
+                        08                                   <-- 8 elements
+                        --- element [1/8] ---
+                        04                                     <-- BIT_STRING
+                          FF                                   <-- length = 255
+                          02 06 00 00 00 00 02 02 00 03 01 00 02 08 00 FF 02 06 00 00 00 04 02 02 00 01 00 00 60 0D 00 FF
+                        ... (truncated)
+                      ... (truncated)
+                    ... (truncated)
+                  ... (truncated)
+                ... (truncated)
+              ... (truncated)
+            ... (truncated)
+        ... (truncated)
+      ... (truncated)
+    ... (truncated)
+  ... (truncated)

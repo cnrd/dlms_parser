@@ -4,4 +4,6 @@
 .idea/
 CMakeSettings.json
 launchSettings.json
-*.key
+__pycache__/
+*.py[cod]
+*$py.class
