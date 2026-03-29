@@ -14,7 +14,7 @@ static constexpr uint8_t HDLC_SEG_BIT    = 0x08;  // bit 3 of frame-type byte: "
 // Walks frame boundaries using length fields. Returns COMPLETE when the last
 // frame in the buffer has no segmentation bit set and no more data follows.
 // ---------------------------------------------------------------------------
-FrameStatus HdlcDecoder::check(const uint8_t* buf, size_t len) {
+FrameStatus HdlcDecoder::check(const uint8_t* buf, const size_t len) {
   if (len < 2 || buf[0] != HDLC_FLAG) return FrameStatus::ERROR;
 
   size_t offset = 0;
@@ -23,7 +23,7 @@ FrameStatus HdlcDecoder::check(const uint8_t* buf, size_t len) {
     if (offset + 3 > len) return FrameStatus::NEED_MORE;  // can't read format field yet
 
     const bool segmented = (buf[offset + 1] & HDLC_SEG_BIT) != 0;
-    const size_t frame_len = (static_cast<size_t>(buf[offset + 1] & 0x07U) << 8) | buf[offset + 2];
+    const size_t frame_len = static_cast<size_t>(buf[offset + 1] & 0x07U) << 8 | buf[offset + 2];
     const size_t frame_total = frame_len + 2;
 
     if (offset + frame_total > len) return FrameStatus::NEED_MORE;  // frame incomplete
@@ -44,7 +44,7 @@ FrameStatus HdlcDecoder::check(const uint8_t* buf, size_t len) {
 // bytes, the result must equal this constant (from RFC 1662 / hdlcpp).
 static constexpr uint16_t FCS16_GOOD_VALUE = 0xF0B8U;
 
-size_t HdlcDecoder::address_length_(const uint8_t* p, size_t remaining) {
+size_t HdlcDecoder::address_length_(const uint8_t* p, const size_t remaining) {
   for (size_t i = 0; i < remaining && i < 4; ++i) {
     if (p[i] & 0x01U) return i + 1;  // LSB=1 marks the last address byte
   }
@@ -53,10 +53,10 @@ size_t HdlcDecoder::address_length_(const uint8_t* p, size_t remaining) {
 
 // CRC-16/IBM-SDLC (X.25): poly=0x8408, init=0xFFFF, xorout=0xFFFF.
 // Running this over (data bytes + the two stored CRC bytes) yields FCS16_GOOD_VALUE for a valid frame.
-uint16_t HdlcDecoder::crc16_x25_check_(const uint8_t* data, size_t len) {
+uint16_t HdlcDecoder::crc16_x25_check_(const uint8_t* data, const size_t len) {
   uint16_t crc = 0xFFFFU;
   for (size_t i = 0; i < len; ++i) {
-    crc = (crc >> 8) ^ CRC16_X25_TABLE[(crc ^ data[i]) & 0xFF];
+    crc = crc >> 8 ^ CRC16_X25_TABLE[(crc ^ data[i]) & 0xFF];
   }
   // Return raw register value (no xor-out) for "good value" verification:
   // when CRC is run over (data + stored_FCS), the raw register equals FCS16_GOOD_VALUE.
@@ -67,7 +67,7 @@ uint16_t HdlcDecoder::crc16_x25_check_(const uint8_t* data, size_t len) {
 // In-place decode: extracts and concatenates payloads from all HDLC frames
 // in buf, writing them sequentially to buf[0..]. Returns new length, 0 on error.
 // ---------------------------------------------------------------------------
-size_t HdlcDecoder::decode(uint8_t* buf, size_t len) const {
+size_t HdlcDecoder::decode(uint8_t* buf, const size_t len) const {
   size_t read_offset = 0;
   size_t write_offset = 0;
   bool is_first = true;
@@ -79,7 +79,7 @@ size_t HdlcDecoder::decode(uint8_t* buf, size_t len) const {
     }
 
     const bool segmented = (buf[read_offset + 1] & HDLC_SEG_BIT) != 0;
-    const size_t frame_len = (static_cast<size_t>(buf[read_offset + 1] & 0x07U) << 8) | buf[read_offset + 2];
+    const size_t frame_len = static_cast<size_t>(buf[read_offset + 1] & 0x07U) << 8 | buf[read_offset + 2];
     const size_t frame_total = frame_len + 2;
 
     if (read_offset + frame_total > len) {
@@ -97,7 +97,7 @@ size_t HdlcDecoder::decode(uint8_t* buf, size_t len) const {
     }
 
     // Length field validation
-    const size_t declared_len = (static_cast<size_t>(b[0] & 0x07U) << 8) | b[1];
+    const size_t declared_len = static_cast<size_t>(b[0] & 0x07U) << 8 | b[1];
     if (declared_len != blen) {
       Logger::log(LogLevel::WARNING, "HDLC: length mismatch (field=%zu, actual=%zu)", declared_len, blen);
       return 0;
@@ -138,7 +138,7 @@ size_t HdlcDecoder::decode(uint8_t* buf, size_t len) const {
     }
 
     // Copy payload to write position (memmove safe: dst <= src always)
-    const size_t payload_len = (pos < data_end) ? data_end - pos : 0;
+    const size_t payload_len = pos < data_end ? data_end - pos : 0;
     if (payload_len > 0) {
       std::memmove(buf + write_offset, b + pos, payload_len);
       write_offset += payload_len;

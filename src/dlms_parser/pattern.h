@@ -6,7 +6,7 @@
 namespace dlms_parser {
 
 struct AxdrPatternStep {
-  AxdrTokenType type;
+  AxdrTokenType type{};
   uint8_t param_u8_a{0};
 };
 

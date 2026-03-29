@@ -16,7 +16,7 @@ static constexpr size_t  MBUS_FOOTER = 2;  // CS(1) + 0x16(1)
 // indicates continuation (0x11 for second+ frames). Returns COMPLETE when
 // the last frame's CI is not a continuation indicator.
 // ---------------------------------------------------------------------------
-FrameStatus MBusDecoder::check(const uint8_t* buf, size_t len) {
+FrameStatus MBusDecoder::check(const uint8_t* buf, const size_t len) {
   if (len < MBUS_INTRO || buf[0] != MBUS_START) return FrameStatus::ERROR;
 
   size_t offset = 0;
@@ -47,7 +47,7 @@ FrameStatus MBusDecoder::check(const uint8_t* buf, size_t len) {
 // In-place decode: extracts and concatenates payloads from all M-Bus frames,
 // writing them sequentially to buf[0..]. Returns new length, 0 on error.
 // ---------------------------------------------------------------------------
-size_t MBusDecoder::decode(uint8_t* buf, size_t len) const {
+size_t MBusDecoder::decode(uint8_t* buf, const size_t len) const {
   size_t read_offset = 0;
   size_t write_offset = 0;
 

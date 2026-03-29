@@ -21,7 +21,7 @@ namespace dlms_parser {
 // only the raw DLMS/COSEM application bytes (data...) are returned.
 class MBusDecoder {
  public:
-  void set_skip_crc_check(bool skip) { skip_crc_check_ = skip; }
+  void set_skip_crc_check(const bool skip) { skip_crc_check_ = skip; }
 
   // Check if buf contains a complete M-Bus message ready for decode().
   static FrameStatus check(const uint8_t* buf, size_t len);

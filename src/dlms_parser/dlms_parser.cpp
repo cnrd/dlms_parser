@@ -8,7 +8,7 @@ DlmsParser::DlmsParser(Aes128GcmDecryptor& decryptor) : decryptor_(decryptor) {
   apdu_handler_.set_decryptor(&decryptor_);
 }
 
-FrameStatus DlmsParser::check_frame(const uint8_t* buf, size_t len) const {
+FrameStatus DlmsParser::check_frame(const uint8_t* buf, const size_t len) const {
   if (!buf || len == 0) return FrameStatus::NEED_MORE;
 
   switch (frame_format_) {
@@ -20,17 +20,17 @@ FrameStatus DlmsParser::check_frame(const uint8_t* buf, size_t len) const {
   }
 }
 
-void DlmsParser::set_skip_crc_check(bool skip) {
+void DlmsParser::set_skip_crc_check(const bool skip) {
   this->hdlc_decoder_.set_skip_crc_check(skip);
   this->mbus_decoder_.set_skip_crc_check(skip);
 }
 
-void DlmsParser::set_work_buffer(uint8_t* buf, size_t capacity) {
+void DlmsParser::set_work_buffer(uint8_t* buf, const size_t capacity) {
   this->work_buf_ = buf;
   this->work_buf_capacity_ = capacity;
 }
 
-void DlmsParser::set_decryption_key(const std::span<const uint8_t> key) {
+void DlmsParser::set_decryption_key(const std::span<const uint8_t> key) const {
   decryptor_.set_decryption_key(key);
 }
 
@@ -45,15 +45,15 @@ void DlmsParser::register_pattern(const char* dsl) {
   axdr_parser_.register_pattern("CUSTOM", dsl, 0);
 }
 
-void DlmsParser::register_pattern(const char* name, const char* dsl, int priority) {
+void DlmsParser::register_pattern(const char* name, const char* dsl, const int priority) {
   axdr_parser_.register_pattern(name, dsl, priority);
 }
 
-void DlmsParser::register_pattern(const char* name, const char* dsl, int priority, const uint8_t default_obis[6]) {
+void DlmsParser::register_pattern(const char* name, const char* dsl, const int priority, const uint8_t default_obis[6]) {
   axdr_parser_.register_pattern(name, dsl, priority, default_obis);
 }
 
-ParseResult DlmsParser::parse(const uint8_t* buf, size_t len, const DlmsDataCallback& cooked_cb,
+ParseResult DlmsParser::parse(const uint8_t* buf, const size_t len, const DlmsDataCallback& cooked_cb,
                               const DlmsRawCallback& raw_cb) {
   if (!this->work_buf_) {
     Logger::log(LogLevel::ERROR, "No work buffer set - call set_work_buffer() before parse()");
@@ -92,11 +92,11 @@ ParseResult DlmsParser::parse(const uint8_t* buf, size_t len, const DlmsDataCall
   ParseResult result;
   size_t offset = 0;
   while (offset < axdr_len) {
-    auto r = this->axdr_parser_.parse(axdr + offset, axdr_len - offset, cooked_cb, raw_cb);
-    if (r.bytes_consumed == 0) break;
-    result.count += r.count;
-    result.bytes_consumed += r.bytes_consumed;
-    offset += r.bytes_consumed;
+    auto [count, bytes_consumed] = this->axdr_parser_.parse(axdr + offset, axdr_len - offset, cooked_cb, raw_cb);
+    if (bytes_consumed == 0) break;
+    result.count += count;
+    result.bytes_consumed += bytes_consumed;
+    offset += bytes_consumed;
   }
   return result;
 }

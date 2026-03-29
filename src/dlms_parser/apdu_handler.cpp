@@ -5,10 +5,9 @@
 
 namespace dlms_parser {
 
-bool ApduHandler::parse(uint8_t* buf, size_t len, const AxdrPayloadCallback& cb) const {
-  UnwrapResult result = unwrap_in_place(buf, len);
-  if (result.length > 0) {
-    cb(buf + result.offset, result.length);
+bool ApduHandler::parse(uint8_t* buf, const size_t len, const AxdrPayloadCallback& cb) const {
+  if (auto [offset, length] = unwrap_in_place(buf, len); length > 0) {
+    cb(buf + offset, length);
     return true;
   }
   return false;
@@ -26,8 +25,8 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
     size_t tag_pos = 0;
     bool found = false;
     for (size_t i = 0; i < len; i++) {
-      const uint8_t tag = buf[i];
-      if (tag == DLMS_APDU_GENERAL_BLOCK_TRANSFER ||
+      if (const uint8_t tag = buf[i];
+          tag == DLMS_APDU_GENERAL_BLOCK_TRANSFER ||
           tag == DLMS_APDU_DATA_NOTIFICATION ||
           tag == DLMS_APDU_GENERAL_GLO_CIPHERING ||
           tag == DLMS_APDU_GENERAL_DED_CIPHERING ||
@@ -66,8 +65,7 @@ ApduHandler::UnwrapResult ApduHandler::unwrap_in_place(uint8_t* buf, size_t len)
       pos += 4;  // Long-Invoke-ID
 
       if (pos >= len) return {0, 0};
-      const uint8_t has_datetime = buf[pos++];
-      if (has_datetime != 0x00) {
+      if (const uint8_t has_datetime = buf[pos++]; has_datetime != 0x00) {
         Logger::log(LogLevel::VERBOSE, "Datetime flag 0x%02X - skipping 12-byte datetime", has_datetime);
         if (pos + 12 > len) return {0, 0};
         pos += 12;

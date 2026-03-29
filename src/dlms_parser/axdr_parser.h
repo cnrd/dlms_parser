@@ -2,7 +2,6 @@
 
 #include "pattern.h"
 #include "types.h"
-#include "utils.h"
 #include <cstdint>
 #include <functional>
 #include <string_view>
@@ -68,7 +67,7 @@ class AxdrParser {
   bool parse_sequence_(uint8_t type, uint8_t depth = 0);
 
   // Pattern matching
-  bool test_if_date_time_12b_(const uint8_t* buf = nullptr);
+  bool test_if_date_time_12b_(const uint8_t* buf = nullptr) const;
   bool capture_generic_value_(AxdrCaptures& c);
   bool try_match_patterns_(uint8_t elem_idx, uint8_t elem_count);
   bool match_pattern_(uint8_t elem_idx, uint8_t elem_count, const AxdrDescriptorPattern& pat, uint8_t& consumed);

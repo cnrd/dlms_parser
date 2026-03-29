@@ -83,7 +83,7 @@ void datetime_to_string(const uint8_t* ptr, const uint8_t len, char* buffer, con
   const uint8_t hundredths = ptr[8];
   const auto deviation = static_cast<int16_t>(be16(ptr + 9));
 
-  auto advance = [&](size_t& p, int n) { if (n > 0) p += static_cast<size_t>(n); };
+  auto advance = [&](size_t& p, const int n) { if (n > 0) p += static_cast<size_t>(n); };
 
   size_t pos = 0;
   // Date: YYYY-MM-DD
@@ -197,7 +197,7 @@ void data_to_string(const DlmsDataType value_type, const uint8_t* ptr, const uin
   }
 }
 
-uint32_t read_ber_length(const uint8_t* buf, size_t& pos, size_t buf_len) {
+uint32_t read_ber_length(const uint8_t* buf, size_t& pos, const size_t buf_len) {
   if (pos >= buf_len) return 0;
   const uint8_t first = buf[pos++];
   if (first <= 0x7F) return first;
@@ -205,7 +205,7 @@ uint32_t read_ber_length(const uint8_t* buf, size_t& pos, size_t buf_len) {
   uint32_t length = 0;
   for (uint8_t i = 0; i < num_bytes; i++) {
     if (pos >= buf_len) return 0;
-    length = (length << 8) | buf[pos++];
+    length = length << 8 | buf[pos++];
   }
   return length;
 }

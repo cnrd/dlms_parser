@@ -15,12 +15,11 @@ namespace dlms_parser {
 
 AxdrParser::AxdrParser() = default;
 
-void AxdrParser::register_pattern(const char* name, const char* dsl, int priority) {
+void AxdrParser::register_pattern(const char* name, const char* dsl, const int priority) {
   this->register_pattern_dsl_(name, dsl, priority);
 }
 
-void AxdrParser::register_pattern(const char* name, const char* dsl, int priority,
-                                   const uint8_t default_obis[6]) {
+void AxdrParser::register_pattern(const char* name, const char* dsl, const int priority, const uint8_t default_obis[6]) {
   auto& pat = this->register_pattern_dsl_(name, dsl, priority);
   pat.has_default_obis = true;
   std::memcpy(pat.default_obis, default_obis, 6);
@@ -34,9 +33,7 @@ void AxdrParser::clear_patterns() {
 // Public parse entry point
 // ---------------------------------------------------------------------------
 
-ParseResult AxdrParser::parse(const uint8_t* axdr, size_t len,
-                              DlmsDataCallback cooked_cb,
-                              DlmsRawCallback raw_cb) {
+ParseResult AxdrParser::parse(const uint8_t* axdr, const size_t len, DlmsDataCallback cooked_cb, DlmsRawCallback raw_cb) {
   if (axdr == nullptr || len == 0) return {};
 
   buffer_ = axdr;
@@ -185,7 +182,7 @@ bool AxdrParser::parse_sequence_(const uint8_t type, const uint8_t depth) {
 // ---------------------------------------------------------------------------
 
 // test_if_date_time_12b_ delegates to the utils function, handling the parser buffer fallback.
-bool AxdrParser::test_if_date_time_12b_(const uint8_t* buf) {
+bool AxdrParser::test_if_date_time_12b_(const uint8_t* buf) const {
   if (buf) return utils::test_if_date_time_12b(buf);
   if (this->pos_ + 12 > this->buffer_len_) return false;
   return utils::test_if_date_time_12b(&this->buffer_[this->pos_]);
@@ -254,17 +251,16 @@ bool AxdrParser::try_match_patterns_(const uint8_t elem_idx, const uint8_t elem_
   return false;
 }
 
-bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count,
-                                const AxdrDescriptorPattern& pat,
-                                uint8_t& elements_consumed_at_level0) {
+bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count, const AxdrDescriptorPattern& pat,
+                                uint8_t& consumed) {
   AxdrCaptures cap{};
-  elements_consumed_at_level0 = 0;
+  consumed = 0;
   uint8_t level = 0;
-  auto consume_one = [&] { if (level == 0) elements_consumed_at_level0++; };
+  auto consume_one = [&] { if (level == 0) consumed++; };
   const auto initial_position = static_cast<uint32_t>(this->pos_);
 
-  for (const auto& step : pat.steps) {
-    switch (step.type) {
+  for (const auto& [type, param_u8_a] : pat.steps) {
+    switch (type) {
       case AxdrTokenType::EXPECT_TO_BE_FIRST:
         if (elem_idx != 0) return false;
         break;
@@ -272,7 +268,7 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
         if (elem_count == 0 || elem_idx != elem_count - 1) return false;
         break;
       case AxdrTokenType::EXPECT_TYPE_EXACT:
-        if (this->read_byte_() != step.param_u8_a) return false;
+        if (this->read_byte_() != param_u8_a) return false;
         consume_one();
         break;
       case AxdrTokenType::EXPECT_TYPE_U_I_8: {
@@ -349,7 +345,7 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
       }
       case AxdrTokenType::EXPECT_STRUCTURE_N:
         if (this->read_byte_() != DLMS_DATA_TYPE_STRUCTURE) return false;
-        if (this->read_byte_() != step.param_u8_a) return false;
+        if (this->read_byte_() != param_u8_a) return false;
         consume_one();
         break;
       case AxdrTokenType::EXPECT_SCALER_TAGGED:
@@ -370,7 +366,7 @@ bool AxdrParser::match_pattern_(const uint8_t elem_idx, const uint8_t elem_count
     }
   }
 
-  if (elements_consumed_at_level0 == 0) elements_consumed_at_level0 = 1;
+  if (consumed == 0) consumed = 1;
   cap.elem_idx = initial_position;
   this->emit_object_(pat, cap);
   return true;
@@ -440,19 +436,19 @@ void AxdrParser::emit_object_(const AxdrDescriptorPattern& pat, const AxdrCaptur
 // DSL parser (Zero-Allocation Implementation)
 // ---------------------------------------------------------------------------
 
-AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, std::string_view dsl, const int priority) {
+AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, const std::string_view dsl, const int priority) {
   AxdrDescriptorPattern pat{};
   pat.name = name;
   pat.priority = priority;
 
   // Fill step array with the sentinel value since we don't track step count directly
-  for (auto & step : pat.steps) {
-    step.type = AxdrTokenType::END_OF_PATTERN;
+  for (auto & [type, param_u8_a] : pat.steps) {
+    type = AxdrTokenType::END_OF_PATTERN;
   }
   size_t step_count = 0;
 
   // Helper lambda to trim string_view bounds instead of creating new substrings
-  auto trim = [](std::string_view s) -> std::string_view {
+  auto trim = [](const std::string_view s) -> std::string_view {
     const size_t b = s.find_first_not_of(" \t\r\n");
     if (b == std::string_view::npos) return {};
     const size_t e = s.find_last_not_of(" \t\r\n");
@@ -478,13 +474,13 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, std::
   }
 
   // Safely adds a step sequence tracking step counts directly
-  auto add_step = [&](AxdrTokenType type, uint8_t param = 0) {
+  auto add_step = [&](const AxdrTokenType type, const uint8_t param = 0) {
     if (step_count < 32) {
       pat.steps[step_count++] = {type, param};
     }
   };
 
-  auto process_simple_token = [&](std::string_view tok) {
+  auto process_simple_token = [&](const std::string_view tok) {
     if      (tok == "F")  add_step(AxdrTokenType::EXPECT_TO_BE_FIRST);
     else if (tok == "L")  add_step(AxdrTokenType::EXPECT_TO_BE_LAST);
     else if (tok == "C")  add_step(AxdrTokenType::EXPECT_CLASS_ID_UNTAGGED);
@@ -568,17 +564,17 @@ AxdrDescriptorPattern& AxdrParser::register_pattern_dsl_(const char* name, std::
     this->patterns_[insert_pos] = pat;
     this->patterns_count_++;
     return this->patterns_[insert_pos];
-  } else {
-    // If full, default to end-overwrite safety, although standard usage expects patterns to fit MAX_PATTERNS
-    if (insert_pos < MAX_PATTERNS) {
-      for (size_t j = MAX_PATTERNS - 1; j > insert_pos; --j) {
-        this->patterns_[j] = this->patterns_[j - 1];
-      }
-      this->patterns_[insert_pos] = pat;
-      return this->patterns_[insert_pos];
-    }
-    return this->patterns_[MAX_PATTERNS - 1];
   }
+
+  // If full, default to end-overwrite safety, although standard usage expects patterns to fit MAX_PATTERNS
+  if (insert_pos < MAX_PATTERNS) {
+    for (size_t j = MAX_PATTERNS - 1; j > insert_pos; --j) {
+      this->patterns_[j] = this->patterns_[j - 1];
+    }
+    this->patterns_[insert_pos] = pat;
+    return this->patterns_[insert_pos];
+  }
+  return this->patterns_[MAX_PATTERNS - 1];
 }
 
 }  // namespace dlms_parser

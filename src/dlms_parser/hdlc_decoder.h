@@ -53,7 +53,7 @@ static constexpr uint16_t CRC16_X25_TABLE[256] = {
 // - FCS: CRC16/IBM-SDLC over frame[1..before_FCS]
 class HdlcDecoder {
  public:
-  void set_skip_crc_check(bool skip) { skip_crc_check_ = skip; }
+  void set_skip_crc_check(const bool skip) { skip_crc_check_ = skip; }
 
   // Check if buf contains a complete HDLC message ready for decode().
   static FrameStatus check(const uint8_t* buf, size_t len);
