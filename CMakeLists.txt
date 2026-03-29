@@ -3,11 +3,22 @@ if(ESP_PLATFORM)
    return()
 endif()
 
+if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_SOURCE_DIR) # used via add_subdirectory
+  file(GLOB_RECURSE dlms_parser_src_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp")
+  add_library(dlms_parser ${dlms_parser_src_files})
+  target_compile_features(dlms_parser PUBLIC cxx_std_20)
+  return()
+endif()
+
 cmake_minimum_required(VERSION 3.14)
 cmake_policy(SET CMP0092 NEW) # don't add "/W3" to the compilation flags when using MSVC
 project(dlms_parser)
 include(FetchContent)
 set(CMAKE_CXX_SCAN_FOR_MODULES 0) # For clang, module scanning requires "clang-scan-deps". It is not included in some Linux distros.
+
+if(MINGW)
+  message(FATAL_ERROR "MinGW is not supported")
+endif()
 
 # doctest
 file(DOWNLOAD
@@ -17,22 +28,22 @@ file(DOWNLOAD
 
 # mbedtls
 FetchContent_Populate(
-  mded_tls
+  mbedtls
   URL https://github.com/Mbed-TLS/mbedtls/releases/download/mbedtls-3.6.5/mbedtls-3.6.5.tar.bz2
   URL_HASH SHA256=4a11f1777bb95bf4ad96721cac945a26e04bf19f57d905f241fe77ebeddf46d8)
 set(ENABLE_PROGRAMS OFF CACHE INTERNAL "")
 set(ENABLE_TESTING OFF CACHE INTERNAL "")
 set(MBEDTLS_FATAL_WARNINGS OFF CACHE INTERNAL "")
-add_subdirectory(${mded_tls_SOURCE_DIR})
+add_subdirectory(${mbedtls_SOURCE_DIR})
 
 # bearssl
 FetchContent_Populate(
-  bearsll
+  bearssl
   URL https://bearssl.org/bearssl-0.6.tar.gz
   URL_HASH SHA512=f9ed25683cfc6c4abe7f1203a2b82ed101ee4c9e0f9ab60755b6a09c8d1e8e4f64d413624e7bb9c4b0033f909a2e4568a1d916cc6ce4736222900691e1f8359a)
-file(GLOB_RECURSE bearssl_sources CONFIGURE_DEPENDS "${bearsll_SOURCE_DIR}/src/*.c")
+file(GLOB_RECURSE bearssl_sources CONFIGURE_DEPENDS "${bearssl_SOURCE_DIR}/src/*.c")
 add_library(bearssl STATIC ${bearssl_sources})
-target_include_directories(bearssl SYSTEM PUBLIC "${bearsll_SOURCE_DIR}/inc" PRIVATE "${bearsll_SOURCE_DIR}/src")
+target_include_directories(bearssl SYSTEM PUBLIC "${bearssl_SOURCE_DIR}/inc" PRIVATE "${bearssl_SOURCE_DIR}/src")
 
 # Combine mbedtls and bearssl into a single "crypto" target to simplify linking
 add_library(dlms_cryptography INTERFACE)
@@ -50,7 +61,6 @@ include(${cmake_template_SOURCE_DIR}/cmake/Sanitizers.cmake)
 # dlms_parser library
 file(GLOB_RECURSE dlms_parser_src_files CONFIGURE_DEPENDS "src/*.h" "src/*.cpp")
 add_library(dlms_parser ${dlms_parser_src_files})
-target_include_directories(dlms_parser PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} src)
 target_compile_features(dlms_parser PUBLIC cxx_std_20)
 
 # enable warnings
@@ -64,20 +74,19 @@ endif()
 target_link_libraries(dlms_parser PUBLIC dlms_parser_warnings)
 
 # enable sanitizers
-if(NOT MINGW) # The default MinGW toolchain that comes with Clion on Windows doesn't support sanitizers
-  add_library(dlms_parser_sanitizers INTERFACE)
-  myproject_enable_sanitizers(dlms_parser_sanitizers ON ON ON OFF OFF)
-  target_link_libraries(dlms_parser PUBLIC dlms_parser_sanitizers)
-endif()
+add_library(dlms_parser_sanitizers INTERFACE)
+myproject_enable_sanitizers(dlms_parser_sanitizers ON ON ON OFF OFF)
+target_link_libraries(dlms_parser PUBLIC dlms_parser_sanitizers)
 
 # dlms_parser_test
 file(GLOB_RECURSE dlms_parser_test_src_files CONFIGURE_DEPENDS "tests/*.h" "tests/*.cpp")
 add_executable(dlms_parser_test ${dlms_parser_test_src_files})
 target_link_libraries(dlms_parser_test PRIVATE dlms_parser dlms_cryptography)
-target_include_directories(dlms_parser_test PRIVATE ${CMAKE_BINARY_DIR}/doctest)
+target_include_directories(dlms_parser_test PRIVATE ${CMAKE_BINARY_DIR}/doctest ${CMAKE_CURRENT_SOURCE_DIR} src)
 enable_testing()
 add_test(NAME dlms_parser_test COMMAND dlms_parser_test)
 
 # decode_readout
 add_executable(decode_readout tools/decode_readout.cpp)
 target_link_libraries(decode_readout PRIVATE dlms_parser dlms_cryptography)
+target_include_directories(decode_readout PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
